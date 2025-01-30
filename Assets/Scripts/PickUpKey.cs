@@ -1,61 +1,56 @@
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class PickUpKey : MonoBehaviour
 {
-    public GameObject keyObject;
-    public GameObject inventoryObject;
+    public GameObject keyOB;
+    public GameObject invOB;
     public GameObject pickUpText;
     public AudioSource keySound;
 
-    private bool isInReach = false;
+    public bool inReach;
+
 
     void Start()
     {
+        inReach = false;
         pickUpText.SetActive(false);
-        inventoryObject.SetActive(false);
-        
+        invOB.SetActive(false);
     }
 
-    private void OnTriggerEnter(Collider other)
+
+    void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Reach"))
+        if (other.gameObject.tag == "Reach")
         {
-            isInReach = true;
+            inReach = true;
             pickUpText.SetActive(true);
-        }
-    }
-    private void onTriggerExit(Collider other)
-    {
-        if (other.CompareTag("Reach"))
-        {
-            isInReach = false;
-            pickUpText.SetActive(false);
+
         }
     }
 
-    // Update is called once per frame
+    void OnTriggerExit(Collider other)
+    {
+        if (other.gameObject.tag == "Reach")
+        {
+            inReach = false;
+            pickUpText.SetActive(false);
+
+        }
+    }
+
+
     void Update()
     {
-        if (isInReach && Input.GetButtonDown("Interact"))
-            PickUpKeyItem();
-    }
-
-    void PickUpKeyItem()
-    {
-        if (keySound != null)
+        if (inReach && Input.GetButtonDown("Interact"))
         {
+            keyOB.SetActive(false);
             keySound.Play();
+            invOB.SetActive(true);
+            pickUpText.SetActive(false);
         }
-        if (keyObject != null)
-        {
-            keyObject.SetActive(false);
-        }
-        if (inventoryObject != null)
-        {
-            inventoryObject.SetActive(true);
-        }
-        pickUpText.SetActive(false);
-        isInReach = false;
-    }
 
+
+    }
 }
