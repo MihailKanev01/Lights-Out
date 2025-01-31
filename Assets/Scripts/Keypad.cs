@@ -13,7 +13,7 @@ public class Keypad : MonoBehaviour
 
     public Animator ANI;
     public Text textOB;
-    public string answer = "12345";
+    public string answer = "12345"; // Correct PIN
 
     public AudioSource button;
     public AudioSource correct;
@@ -23,7 +23,7 @@ public class Keypad : MonoBehaviour
 
     void Start()
     {
-        keypadOB.SetActive(false);
+        keypadOB.SetActive(false); // Ensure the keypad is initially hidden
     }
 
     public void Number(int number)
@@ -37,7 +37,7 @@ public class Keypad : MonoBehaviour
         if (textOB.text == answer)
         {
             correct.Play();
-            textOB.text = "Right";
+            textOB.text = "Right"; // Display "Right" when the correct PIN is entered
 
             // Unlock the door
             if (door != null)
@@ -51,6 +51,9 @@ public class Keypad : MonoBehaviour
                 ANI.SetBool("animate", true);
                 Debug.Log("Animation triggered.");
             }
+
+            // Hide the keypad after 3 seconds
+            StartCoroutine(HideKeypadAfterDelay(1f)); // Call the coroutine to hide after 3 seconds
         }
         else
         {
@@ -81,5 +84,18 @@ public class Keypad : MonoBehaviour
             Cursor.visible = true;
             Cursor.lockState = CursorLockMode.None;
         }
+    }
+
+    // Coroutine to hide the keypad after a delay and hide the cursor
+    private IEnumerator HideKeypadAfterDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay); // Wait for the specified time (3 seconds)
+        keypadOB.SetActive(false); // Hide the keypad
+        hud.SetActive(true); // Re-enable the HUD
+        player.GetComponent<FirstPersonController>().enabled = true; // Enable player controls
+
+        // Hide the cursor and lock it back to the center
+        Cursor.visible = false;
+        Cursor.lockState = CursorLockMode.Locked;
     }
 }
