@@ -6,95 +6,128 @@ using StarterAssets;
 
 public class Keypad : MonoBehaviour
 {
-    public GameObject player;
-    public GameObject keypadOB;
-    public GameObject hud;
-    public DoorWithKeyPad door; // Reference to the door script
+    [SerializeField] private GameObject player;
+    [SerializeField] private GameObject keypadOB;
+    [SerializeField] private GameObject hud;
+    [SerializeField] private DoorWithKeyPad door;
+    [SerializeField] private Animator ANI;
+    [SerializeField] private Text textOB;
+    [SerializeField] private string answer = "12345";
+    [SerializeField] private AudioSource button;
+    [SerializeField] private AudioSource correct;
+    [SerializeField] private AudioSource wrong;
+    [SerializeField] private bool animate;
 
-    public Animator ANI;
-    public Text textOB;
-    public string answer = "12345"; // Correct PIN
-
-    public AudioSource button;
-    public AudioSource correct;
-    public AudioSource wrong;
-
-    public bool animate;
-
-    void Start()
+    private void Start()
     {
-        keypadOB.SetActive(false); // Ensure the keypad is initially hidden
+        if (keypadOB != null)
+            keypadOB.SetActive(false);
     }
 
     public void Number(int number)
     {
-        textOB.text += number.ToString();
-        button.Play();
+        if (textOB != null)
+            textOB.text += number.ToString();
+
+        if (button != null)
+            button.Play();
     }
 
     public void Execute()
     {
+        if (textOB == null) return;
+
         if (textOB.text == answer)
         {
-            correct.Play();
-            textOB.text = "Right"; // Display "Right" when the correct PIN is entered
+            if (correct != null)
+                correct.Play();
 
-            // Unlock the door
+            textOB.text = "Right";
+
             if (door != null)
             {
                 door.UnlockDoor();
                 Debug.Log("Door unlocked via keypad!");
             }
 
-            if (animate)
+            if (animate && ANI != null)
             {
                 ANI.SetBool("animate", true);
                 Debug.Log("Animation triggered.");
             }
 
-            // Hide the keypad after 3 seconds
-            StartCoroutine(HideKeypadAfterDelay(1f)); // Call the coroutine to hide after 3 seconds
+            StartCoroutine(HideKeypadAfterDelay(1f));
         }
         else
         {
-            wrong.Play();
+            if (wrong != null)
+                wrong.Play();
+
             textOB.text = "Wrong";
         }
     }
 
     public void Clear()
     {
-        textOB.text = "";
-        button.Play();
+        if (textOB != null)
+            textOB.text = "";
+
+        if (button != null)
+            button.Play();
     }
 
     public void Exit()
     {
-        keypadOB.SetActive(false);
-        hud.SetActive(true);
-        player.GetComponent<FirstPersonController>().enabled = true;
+        if (keypadOB != null)
+            keypadOB.SetActive(false);
+
+        if (hud != null)
+            hud.SetActive(true);
+
+        if (player != null)
+        {
+            var controller = player.GetComponent<FirstPersonController>();
+            if (controller != null)
+                controller.enabled = true;
+        }
     }
 
-    void Update()
+    private void Update()
     {
-        if (keypadOB.activeInHierarchy)
+        if (keypadOB != null && keypadOB.activeInHierarchy)
         {
-            hud.SetActive(false);
-            player.GetComponent<FirstPersonController>().enabled = false;
+            if (hud != null)
+                hud.SetActive(false);
+
+            if (player != null)
+            {
+                var controller = player.GetComponent<FirstPersonController>();
+                if (controller != null)
+                    controller.enabled = false;
+            }
+
             Cursor.visible = true;
             Cursor.lockState = CursorLockMode.None;
         }
     }
 
-    // Coroutine to hide the keypad after a delay and hide the cursor
     private IEnumerator HideKeypadAfterDelay(float delay)
     {
-        yield return new WaitForSeconds(delay); // Wait for the specified time (3 seconds)
-        keypadOB.SetActive(false); // Hide the keypad
-        hud.SetActive(true); // Re-enable the HUD
-        player.GetComponent<FirstPersonController>().enabled = true; // Enable player controls
+        yield return new WaitForSeconds(delay);
 
-        // Hide the cursor and lock it back to the center
+        if (keypadOB != null)
+            keypadOB.SetActive(false);
+
+        if (hud != null)
+            hud.SetActive(true);
+
+        if (player != null)
+        {
+            var controller = player.GetComponent<FirstPersonController>();
+            if (controller != null)
+                controller.enabled = true;
+        }
+
         Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Locked;
     }

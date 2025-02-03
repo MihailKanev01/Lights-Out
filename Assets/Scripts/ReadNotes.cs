@@ -3,80 +3,64 @@ using System.Collections.Generic;
 using UnityEngine;
 using StarterAssets;
 
-
 public class ReadNotes : MonoBehaviour
 {
-    public GameObject player;
-    public GameObject noteUI;
-    public GameObject hud;
-    public GameObject inv;
+    [SerializeField] private GameObject player;
+    [SerializeField] private GameObject noteUI;
+    [SerializeField] private GameObject hud;
+    [SerializeField] private GameObject inv;
+    [SerializeField] private GameObject pickUpText;
+    [SerializeField] private AudioSource pickUpSound;
 
-    public GameObject pickUpText;
+    private bool inReach = false;
 
-    public AudioSource pickUpSound;
-
-    public bool inReach;
-
-
-
-    void Start()
+    private void Start()
     {
-        noteUI.SetActive(false);
-        hud.SetActive(true);
-        inv.SetActive(true);
-        pickUpText.SetActive(false);
-
-        inReach = false;
-        
+        noteUI?.SetActive(false);
+        hud?.SetActive(true);
+        inv?.SetActive(true);
+        pickUpText?.SetActive(false);
     }
 
-    void OnTriggerEnter(Collider other)
+    private void OnTriggerEnter(Collider other)
     {
-        if (other.gameObject.tag == "Reach")
+        if (other.CompareTag("Reach"))
         {
             inReach = true;
-            pickUpText.SetActive(true);
-
+            pickUpText?.SetActive(true);
         }
     }
 
-    void OnTriggerExit(Collider other)
+    private void OnTriggerExit(Collider other)
     {
-        if (other.gameObject.tag == "Reach")
+        if (other.CompareTag("Reach"))
         {
             inReach = false;
-            pickUpText.SetActive(false);
+            pickUpText?.SetActive(false);
         }
     }
 
-
-
-
-    void Update()
+    private void Update()
     {
-        if(Input.GetButtonDown("Interact") && inReach)
+        if (Input.GetButtonDown("Interact") && inReach)
         {
-            noteUI.SetActive(true);
-            pickUpSound.Play();
-            hud.SetActive(false);
-            inv.SetActive(false);
+            noteUI?.SetActive(true);
+            pickUpSound?.Play();
+            hud?.SetActive(false);
+            inv?.SetActive(false);
             player.GetComponent<FirstPersonController>().enabled = false;
             Cursor.visible = true;
             Cursor.lockState = CursorLockMode.None;
         }
-        
     }
-
 
     public void ExitButton()
     {
-
-        noteUI.SetActive(false);
-        hud.SetActive(true);
-        inv.SetActive(true);
+        noteUI?.SetActive(false);
+        hud?.SetActive(true);
+        inv?.SetActive(true);
         player.GetComponent<FirstPersonController>().enabled = true;
         Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Locked;
-
     }
 }

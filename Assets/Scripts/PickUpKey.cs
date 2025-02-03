@@ -4,53 +4,45 @@ using UnityEngine;
 
 public class PickUpKey : MonoBehaviour
 {
-    public GameObject keyOB;
-    public GameObject invOB;
-    public GameObject pickUpText;
-    public AudioSource keySound;
+    [SerializeField] private GameObject keyOB;
+    [SerializeField] private GameObject invOB;
+    [SerializeField] private GameObject pickUpText;
+    [SerializeField] private AudioSource keySound;
 
-    public bool inReach;
+    private bool inReach = false;
 
-
-    void Start()
+    private void Start()
     {
-        inReach = false;
-        pickUpText.SetActive(false);
-        invOB.SetActive(false);
+        pickUpText?.SetActive(false);
+        invOB?.SetActive(false);
     }
 
-
-    void OnTriggerEnter(Collider other)
+    private void OnTriggerEnter(Collider other)
     {
-        if (other.gameObject.tag == "Reach")
+        if (other.CompareTag("Reach"))
         {
             inReach = true;
-            pickUpText.SetActive(true);
-
+            pickUpText?.SetActive(true);
         }
     }
 
-    void OnTriggerExit(Collider other)
+    private void OnTriggerExit(Collider other)
     {
-        if (other.gameObject.tag == "Reach")
+        if (other.CompareTag("Reach"))
         {
             inReach = false;
-            pickUpText.SetActive(false);
-
+            pickUpText?.SetActive(false);
         }
     }
 
-
-    void Update()
+    private void Update()
     {
         if (inReach && Input.GetButtonDown("Interact"))
         {
-            keyOB.SetActive(false);
-            keySound.Play();
-            invOB.SetActive(true);
-            pickUpText.SetActive(false);
+            keyOB?.SetActive(false);
+            keySound?.Play();
+            invOB?.SetActive(true);
+            pickUpText?.SetActive(false);
         }
-
-
     }
 }

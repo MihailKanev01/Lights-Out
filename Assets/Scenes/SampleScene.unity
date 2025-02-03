@@ -189,7 +189,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   doorAnimator: {fileID: 19784539}
   openText: {fileID: 26135040}
-  KeyINV: {fileID: 6576348805370734640}
+  keyINV: {fileID: 6576348805370734640}
   doorSound: {fileID: 845355057}
   lockedSound: {fileID: 817765083}
 --- !u!95 &19784539
@@ -1523,7 +1523,6 @@ MonoBehaviour:
   inv: {fileID: 1310820146}
   pickUpText: {fileID: 614412934}
   pickUpSound: {fileID: 853292855}
-  inReach: 0
 --- !u!65 &254896453
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -3552,7 +3551,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   doorAnimator: {fileID: 1041978778}
   openText: {fileID: 26135040}
-  KeypadUI: {fileID: 8258141433101948431}
+  keypadUI: {fileID: 8258141433101948431}
   doorSound: {fileID: 845355057}
   lockedSound: {fileID: 817765083}
 --- !u!1 &1189167044
@@ -4962,7 +4961,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   keypadOB: {fileID: 8258141433101948431}
   keypadText: {fileID: 1564398960}
-  inReach: 0
 --- !u!1 &1972606357
 GameObject:
   m_ObjectHideFlags: 0
@@ -6033,8 +6031,6 @@ MonoBehaviour:
   menu: {fileID: 653126717}
   resume: {fileID: 1374170216}
   quit: {fileID: 2048884266}
-  on: 0
-  off: 0
 --- !u!222 &259454967888881668
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -8161,9 +8157,6 @@ MonoBehaviour:
   lightsText: {fileID: 836362930}
   lightOB: {fileID: 1635806353}
   switchClick: {fileID: 2059557780}
-  lightsAreOn: 0
-  lightsAreOff: 0
-  inReach: 0
 --- !u!65 &4188550389200922788
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -8278,6 +8271,8 @@ MonoBehaviour:
   CinemachineCameraTarget: {fileID: 8338988565591873048}
   TopClamp: 89
   BottomClamp: -89
+  BobAmplitude: 0.05
+  BobFrequency: 10
 --- !u!143 &4416926083347132233
 CharacterController:
   m_ObjectHideFlags: 0
@@ -9513,7 +9508,6 @@ MonoBehaviour:
   invOB: {fileID: 162126441}
   pickUpText: {fileID: 419081752}
   keySound: {fileID: 1445522780}
-  inReach: 0
 --- !u!114 &6750199708175145858
 MonoBehaviour:
   m_ObjectHideFlags: 0

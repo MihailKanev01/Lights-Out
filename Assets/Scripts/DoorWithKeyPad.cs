@@ -4,26 +4,26 @@ using UnityEngine;
 
 public class DoorWithKeyPad : MonoBehaviour
 {
-    public Animator doorAnimator;
-    public GameObject openText;
-    public GameObject KeypadUI; // Reference to the keypad UI GameObject
-    public AudioSource doorSound;
-    public AudioSource lockedSound; // Sound for locked door
+    [SerializeField] private Animator doorAnimator;
+    [SerializeField] private GameObject openText;
+    [SerializeField] private GameObject keypadUI;
+    [SerializeField] private AudioSource doorSound;
+    [SerializeField] private AudioSource lockedSound;
 
     private bool inReach = false;
     private bool isOpen = false;
-    private bool locked = true; // Door starts locked by default
+    private bool locked = true;
 
-    void Start()
+    private void Start()
     {
         if (openText != null)
             openText.SetActive(false);
 
-        if (KeypadUI != null)
-            KeypadUI.SetActive(false);
+        if (keypadUI != null)
+            keypadUI.SetActive(false);
     }
 
-    void OnTriggerEnter(Collider other)
+    private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Reach"))
         {
@@ -33,7 +33,7 @@ public class DoorWithKeyPad : MonoBehaviour
         }
     }
 
-    void OnTriggerExit(Collider other)
+    private void OnTriggerExit(Collider other)
     {
         if (other.CompareTag("Reach"))
         {
@@ -41,18 +41,17 @@ public class DoorWithKeyPad : MonoBehaviour
             if (openText != null)
                 openText.SetActive(false);
 
-            if (KeypadUI != null)
-                KeypadUI.SetActive(false); // Hide keypad UI when leaving
+            if (keypadUI != null)
+                keypadUI.SetActive(false);
         }
     }
 
-    void Update()
+    private void Update()
     {
         if (inReach && Input.GetButtonDown("Interact"))
         {
             if (locked)
             {
-                // Play locked door sound and do not display keypad
                 if (lockedSound != null)
                 {
                     lockedSound.Play();
@@ -61,7 +60,6 @@ public class DoorWithKeyPad : MonoBehaviour
             }
             else
             {
-                // Open or close the door if it's unlocked
                 ToggleDoor();
             }
         }
@@ -69,11 +67,11 @@ public class DoorWithKeyPad : MonoBehaviour
 
     public void UnlockDoor()
     {
-        locked = false; // Unlock the door
+        locked = false;
         Debug.Log("Door is unlocked!");
     }
 
-    void ToggleDoor()
+    private void ToggleDoor()
     {
         isOpen = !isOpen;
         doorAnimator.SetBool("isOpen", isOpen);

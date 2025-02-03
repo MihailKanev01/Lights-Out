@@ -4,38 +4,40 @@ using UnityEngine;
 
 public class Flashlight : MonoBehaviour
 {
-    public GameObject flashlight;
-
-    public AudioSource turnOn;
-    public AudioSource turnOff;
+    [SerializeField] private GameObject flashlight;
+    [SerializeField] private AudioSource turnOn;
+    [SerializeField] private AudioSource turnOff;
 
     private bool isOn = false;
 
-
-
-
-    void Start()
+    private void Start()
     {
-        flashlight.SetActive(false);
+        if (flashlight != null)
+            flashlight.SetActive(false);
     }
 
-
-
-
-    void Update()
+    private void Update()
     {
         if (Input.GetButtonDown("F"))
-            ToggleFlashLight();
+            ToggleFlashlight();
     }
 
-    void ToggleFlashLight()
+    private void ToggleFlashlight()
     {
         isOn = !isOn;
-        flashlight.SetActive(isOn);
 
-        if (isOn && turnOn != null)
-            turnOn.Play();
+        if (flashlight != null)
+            flashlight.SetActive(isOn);
+
+        if (isOn)
+        {
+            if (turnOn != null)
+                turnOn.Play();
+        }
         else
-            turnOff.Play();
+        {
+            if (turnOff != null)
+                turnOff.Play();
+        }
     }
 }

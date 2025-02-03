@@ -4,54 +4,37 @@ using UnityEngine;
 
 public class PauseGame : MonoBehaviour
 {
-    public GameObject menu;
-    public GameObject resume;
-    public GameObject quit;
+    [SerializeField] private GameObject menu;
+    [SerializeField] private GameObject resume;
+    [SerializeField] private GameObject quit;
 
-    public bool on;
-    public bool off;
+    private bool isPaused = false;
 
-
-
-
-
-    void Start()
+    private void Start()
     {
-        menu.SetActive(false);
-        off = true;
-        on = false;
+        menu?.SetActive(false);
     }
 
-
-
-
-    void Update()
+    private void Update()
     {
-        if (off && Input.GetButtonDown("pause"))
+        if (Input.GetButtonDown("pause"))
         {
-            Time.timeScale = 0;
-            menu.SetActive(true);
-            off = false;
-            on = true;
+            TogglePause();
         }
+    }
 
-        else if (on && Input.GetButtonDown("pause"))
-        {
-            Time.timeScale = 1;
-            menu.SetActive(false);
-            off = true;
-            on = false;
-        }
-        
+    public void TogglePause()
+    {
+        isPaused = !isPaused;
+        Time.timeScale = isPaused ? 0 : 1;
+        menu?.SetActive(isPaused);
     }
 
     public void Resume()
     {
-            Time.timeScale = 1;
-            menu.SetActive(false);
-            off = true;
-            on = false;
-
+        isPaused = false;
+        Time.timeScale = 1;
+        menu?.SetActive(false);
     }
 
     public void Exit()

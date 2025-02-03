@@ -4,47 +4,34 @@ using UnityEngine;
 
 public class OpenKeyPad : MonoBehaviour
 {
-    public GameObject keypadOB;
-    public GameObject keypadText;
+    [SerializeField] private GameObject keypadOB;
+    [SerializeField] private GameObject keypadText;
 
-    public bool inReach;
+    private bool inReach = false;
 
-
-    void Start()
+    private void OnTriggerEnter(Collider other)
     {
-        inReach = false;
-    }
-
-    void OnTriggerEnter(Collider other)
-    {
-        if (other.gameObject.tag == "Reach")
+        if (other.CompareTag("Reach"))
         {
             inReach = true;
-            keypadText.SetActive(true);
-
+            keypadText?.SetActive(true);
         }
     }
 
-    void OnTriggerExit(Collider other)
+    private void OnTriggerExit(Collider other)
     {
-        if (other.gameObject.tag == "Reach")
+        if (other.CompareTag("Reach"))
         {
             inReach = false;
-            keypadText.SetActive(false);
-
+            keypadText?.SetActive(false);
         }
     }
 
-
-
-
-    void Update()
+    private void Update()
     {
-        if(Input.GetButtonDown("Interact") && inReach)
+        if (inReach && Input.GetButtonDown("Interact"))
         {
-            keypadOB.SetActive(true);
+            keypadOB?.SetActive(true);
         }
-        
-
     }
 }

@@ -4,20 +4,20 @@ using UnityEngine;
 
 public class Doors : MonoBehaviour
 {
-    public Animator doorAnimator; // Renamed for clarity
-    public GameObject openText;
-    public AudioSource doorSound;
+    [SerializeField] private Animator doorAnimator;
+    [SerializeField] private GameObject openText;
+    [SerializeField] private AudioSource doorSound;
 
     private bool inReach = false;
-    private bool isOpen = false; // Tracks door state
+    private bool isOpen = false;
 
-    void Start()
+    private void Start()
     {
         if (openText != null)
             openText.SetActive(false);
     }
 
-    void OnTriggerEnter(Collider other)
+    private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Reach"))
         {
@@ -27,7 +27,7 @@ public class Doors : MonoBehaviour
         }
     }
 
-    void OnTriggerExit(Collider other)
+    private void OnTriggerExit(Collider other)
     {
         if (other.CompareTag("Reach"))
         {
@@ -37,7 +37,7 @@ public class Doors : MonoBehaviour
         }
     }
 
-    void Update()
+    private void Update()
     {
         if (inReach && Input.GetButtonDown("Interact"))
         {
@@ -45,10 +45,10 @@ public class Doors : MonoBehaviour
         }
     }
 
-    void ToggleDoor()
+    private void ToggleDoor()
     {
-        isOpen = !isOpen; // Toggle the door state
-        doorAnimator.SetBool("isOpen", isOpen); // Use a single bool parameter
+        isOpen = !isOpen;
+        doorAnimator.SetBool("isOpen", isOpen);
 
         if (doorSound != null)
             doorSound.Play();
