@@ -11,75 +11,71 @@ namespace StarterAssets
 #endif
     public class FirstPersonController : MonoBehaviour
     {
-        [Header("Player")]
+        [Header("Player Movement")]
         public float MoveSpeed = 4.0f;
         public float SprintSpeed = 6.0f;
         public float RotationSpeed = 1.0f;
         public float SpeedChangeRate = 10.0f;
 
-        [Space(10)]
+        [Header("Jumping & Gravity")]
         public float JumpHeight = 1.2f;
         public float Gravity = -15.0f;
-
-        [Space(10)]
         public float JumpTimeout = 0.1f;
         public float FallTimeout = 0.15f;
 
-        [Header("Player Grounded")]
+        [Header("Ground Check")]
         public bool Grounded = true;
         public float GroundedOffset = -0.14f;
         public float GroundedRadius = 0.5f;
         public LayerMask GroundLayers;
 
-        [Header("Cinemachine")]
+        [Header("Camera Settings")]
         public GameObject CinemachineCameraTarget;
         public float TopClamp = 90.0f;
         public float BottomClamp = -90.0f;
 
-        // Cinemachine
-        private float _cinemachineTargetPitch;
+        [Header("Head Bobbing")]
+        public float BobAmplitude = 0.05f;
+        public float BobFrequency = 10f;
+        public float LandBobIntensity = 0.1f;
+        public float LandBobRecoverySpeed = 5f;
 
-        // Player
+        [Header("Audio Clips")]
+        [SerializeField] private AudioClip walking;
+        [SerializeField] private AudioClip sprint;
+        [SerializeField] private AudioClip jump;
+        [SerializeField] private AudioClip land;
+
+        // Movement Variables
         private float _speed;
         private float _rotationVelocity;
         private float _verticalVelocity;
         private float _terminalVelocity = 53.0f;
-
-        // Timeout deltaTime
         private float _jumpTimeoutDelta;
         private float _fallTimeoutDelta;
 
-#if ENABLE_INPUT_SYSTEM
-        private PlayerInput _playerInput;
-#endif
+        // Camera Rotation
+        private float _cinemachineTargetPitch = 0f; // FIX: Added missing variable
+
+        // Components
         private CharacterController _controller;
         private StarterAssetsInputs _input;
         private GameObject _mainCamera;
 
-        private const float _threshold = 0.01f;
-
-        // Head bobbing variables
+        // Head Bobbing
         private Vector3 _headStartPosition;
         private float _bobTimer = 0f;
-        [Header("Head Bobbing Settings")]
-        public float BobAmplitude = 0.05f;
-        public float BobFrequency = 10f;
+        private bool _footstepPlayedCycle = false;
+        private bool _isFalling = false;
+        private bool _landed = false;
 
-        private bool IsCurrentDeviceMouse
-        {
-            get
-            {
 #if ENABLE_INPUT_SYSTEM
-                return _playerInput.currentControlScheme == "KeyboardMouse";
-#else
-				return false;
+        private PlayerInput _playerInput;
+        private bool IsCurrentDeviceMouse => _playerInput.currentControlScheme == "KeyboardMouse";
 #endif
-            }
-        }
 
         private void Awake()
         {
-            // Get a reference to our main camera
             if (_mainCamera == null)
             {
                 _mainCamera = GameObject.FindGameObjectWithTag("MainCamera");
@@ -90,19 +86,15 @@ namespace StarterAssets
         {
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
+
             _controller = GetComponent<CharacterController>();
             _input = GetComponent<StarterAssetsInputs>();
 #if ENABLE_INPUT_SYSTEM
             _playerInput = GetComponent<PlayerInput>();
-#else
-			Debug.LogError("Starter Assets package is missing dependencies. Please use Tools/Starter Assets/Reinstall Dependencies to fix it");
 #endif
 
-            // Reset timeouts
             _jumpTimeoutDelta = JumpTimeout;
             _fallTimeoutDelta = FallTimeout;
-
-            // Save the initial head position
             _headStartPosition = CinemachineCameraTarget.transform.localPosition;
         }
 
@@ -122,22 +114,30 @@ namespace StarterAssets
         private void GroundedCheck()
         {
             Vector3 spherePosition = new Vector3(transform.position.x, transform.position.y - GroundedOffset, transform.position.z);
+            bool wasGrounded = Grounded;
             Grounded = Physics.CheckSphere(spherePosition, GroundedRadius, GroundLayers, QueryTriggerInteraction.Ignore);
+
+            // Detect Landing
+            if (!wasGrounded && Grounded)
+            {
+                _landed = true;
+                SoundFXManager.Instance.PlaySoundFXClip(land, transform, 1f);
+            }
         }
 
         private void CameraRotation()
         {
-            if (_input.look.sqrMagnitude >= _threshold)
+            if (_input.look.sqrMagnitude >= 0.01f)
             {
                 float deltaTimeMultiplier = IsCurrentDeviceMouse ? 1.0f : Time.deltaTime;
 
                 _cinemachineTargetPitch += _input.look.y * RotationSpeed * deltaTimeMultiplier;
                 _rotationVelocity = _input.look.x * RotationSpeed * deltaTimeMultiplier;
 
-                _cinemachineTargetPitch = ClampAngle(_cinemachineTargetPitch, BottomClamp, TopClamp);
+                // Clamping Vertical Rotation
+                _cinemachineTargetPitch = Mathf.Clamp(_cinemachineTargetPitch, BottomClamp, TopClamp);
 
                 CinemachineCameraTarget.transform.localRotation = Quaternion.Euler(_cinemachineTargetPitch, 0.0f, 0.0f);
-
                 transform.Rotate(Vector3.up * _rotationVelocity);
             }
         }
@@ -145,48 +145,51 @@ namespace StarterAssets
         private void Move()
         {
             float targetSpeed = _input.sprint ? SprintSpeed : MoveSpeed;
-
             if (_input.move == Vector2.zero) targetSpeed = 0.0f;
 
-            float currentHorizontalSpeed = new Vector3(_controller.velocity.x, 0.0f, _controller.velocity.z).magnitude;
+            float currentSpeed = new Vector3(_controller.velocity.x, 0.0f, _controller.velocity.z).magnitude;
+            _speed = Mathf.Lerp(currentSpeed, targetSpeed, Time.deltaTime * SpeedChangeRate);
 
-            float speedOffset = 0.1f;
-            float inputMagnitude = _input.analogMovement ? _input.move.magnitude : 1f;
-
-            if (currentHorizontalSpeed < targetSpeed - speedOffset || currentHorizontalSpeed > targetSpeed + speedOffset)
-            {
-                _speed = Mathf.Lerp(currentHorizontalSpeed, targetSpeed * inputMagnitude, Time.deltaTime * SpeedChangeRate);
-                _speed = Mathf.Round(_speed * 1000f) / 1000f;
-            }
-            else
-            {
-                _speed = targetSpeed;
-            }
-
-            Vector3 inputDirection = new Vector3(_input.move.x, 0.0f, _input.move.y).normalized;
-
-            if (_input.move != Vector2.zero)
-            {
-                inputDirection = transform.right * _input.move.x + transform.forward * _input.move.y;
-            }
-
-            _controller.Move(inputDirection.normalized * (_speed * Time.deltaTime) + new Vector3(0.0f, _verticalVelocity, 0.0f) * Time.deltaTime);
+            Vector3 moveDirection = transform.right * _input.move.x + transform.forward * _input.move.y;
+            _controller.Move(moveDirection.normalized * (_speed * Time.deltaTime) + new Vector3(0.0f, _verticalVelocity, 0.0f) * Time.deltaTime);
         }
 
         private void HandleHeadBob()
         {
             if (!Grounded) return;
 
-            if (_input.move.sqrMagnitude > 0.1f)
+            if (_landed)
+            {
+                // Landing bob effect
+                CinemachineCameraTarget.transform.localPosition = _headStartPosition + new Vector3(0f, -LandBobIntensity, 0f);
+                _landed = false;
+            }
+            else if (_input.move.sqrMagnitude > 0.1f)
             {
                 _bobTimer += Time.deltaTime;
                 float bobOffsetY = Mathf.Sin(_bobTimer * BobFrequency) * BobAmplitude;
                 CinemachineCameraTarget.transform.localPosition = _headStartPosition + new Vector3(0f, bobOffsetY, 0f);
+
+                if (bobOffsetY < -BobAmplitude * 0.9f && !_footstepPlayedCycle)
+                {
+                    PlayFootstepSound();
+                    _footstepPlayedCycle = true;
+                }
+
+                if (bobOffsetY > 0f) _footstepPlayedCycle = false;
             }
             else
             {
-                CinemachineCameraTarget.transform.localPosition = Vector3.Lerp(CinemachineCameraTarget.transform.localPosition, _headStartPosition, Time.deltaTime * 5f);
+                CinemachineCameraTarget.transform.localPosition = Vector3.Lerp(CinemachineCameraTarget.transform.localPosition, _headStartPosition, Time.deltaTime * LandBobRecoverySpeed);
             }
+        }
+
+        private void PlayFootstepSound()
+        {
+            if (!Grounded) return;
+
+            AudioClip clipToPlay = _input.sprint ? sprint : walking;
+            SoundFXManager.Instance.PlaySoundFXClip(clipToPlay, transform, 1f);
         }
 
         private void JumpAndGravity()
@@ -203,47 +206,22 @@ namespace StarterAssets
                 if (_input.jump && _jumpTimeoutDelta <= 0.0f)
                 {
                     _verticalVelocity = Mathf.Sqrt(JumpHeight * -2f * Gravity);
+                    SoundFXManager.Instance.PlaySoundFXClip(jump, transform, 1f);
                 }
 
-                if (_jumpTimeoutDelta >= 0.0f)
-                {
-                    _jumpTimeoutDelta -= Time.deltaTime;
-                }
+                _jumpTimeoutDelta = _jumpTimeoutDelta > 0.0f ? _jumpTimeoutDelta - Time.deltaTime : JumpTimeout;
             }
             else
             {
                 _jumpTimeoutDelta = JumpTimeout;
-
-                if (_fallTimeoutDelta >= 0.0f)
-                {
-                    _fallTimeoutDelta -= Time.deltaTime;
-                }
-
+                _fallTimeoutDelta -= Time.deltaTime;
                 _input.jump = false;
+
+                if (_verticalVelocity < _terminalVelocity)
+                {
+                    _verticalVelocity += Gravity * Time.deltaTime;
+                }
             }
-
-            if (_verticalVelocity < _terminalVelocity)
-            {
-                _verticalVelocity += Gravity * Time.deltaTime;
-            }
-        }
-
-        private static float ClampAngle(float lfAngle, float lfMin, float lfMax)
-        {
-            if (lfAngle < -360f) lfAngle += 360f;
-            if (lfAngle > 360f) lfAngle -= 360f;
-            return Mathf.Clamp(lfAngle, lfMin, lfMax);
-        }
-
-        private void OnDrawGizmosSelected()
-        {
-            Color transparentGreen = new Color(0.0f, 1.0f, 0.0f, 0.35f);
-            Color transparentRed = new Color(1.0f, 0.0f, 0.0f, 0.35f);
-
-            if (Grounded) Gizmos.color = transparentGreen;
-            else Gizmos.color = transparentRed;
-
-            Gizmos.DrawSphere(new Vector3(transform.position.x, transform.position.y - GroundedOffset, transform.position.z), GroundedRadius);
         }
     }
 }
