@@ -66,7 +66,7 @@ namespace StarterAssets
         private Vector3 _headStartPosition;
         private float _bobTimer = 0f;
         private bool _footstepPlayedCycle = false;
-        private bool _isFalling = false;
+        //private bool _isFalling = false;
         private bool _landed = false;
 
 #if ENABLE_INPUT_SYSTEM

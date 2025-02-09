@@ -4,7 +4,8 @@ using UnityEngine;
 
 public class Flashlight : MonoBehaviour
 {
-    [SerializeField] private GameObject flashlight;
+    [SerializeField] private GameObject flashlightObject;
+    [SerializeField] private Light flashlightLight;
     [SerializeField] private AudioSource turnOn;
     [SerializeField] private AudioSource turnOff;
 
@@ -12,13 +13,13 @@ public class Flashlight : MonoBehaviour
 
     private void Start()
     {
-        if (flashlight != null)
-            flashlight.SetActive(false);
+        if (flashlightObject != null)
+            flashlightObject.SetActive(false);
     }
 
     private void Update()
     {
-        if (Input.GetButtonDown("F"))
+        if (Input.GetKeyDown(KeyCode.F))
             ToggleFlashlight();
     }
 
@@ -26,8 +27,11 @@ public class Flashlight : MonoBehaviour
     {
         isOn = !isOn;
 
-        if (flashlight != null)
-            flashlight.SetActive(isOn);
+        if (flashlightObject != null)
+            flashlightObject.SetActive(isOn);
+
+        if (flashlightLight != null)
+            flashlightLight.enabled = isOn;
 
         if (isOn)
         {
