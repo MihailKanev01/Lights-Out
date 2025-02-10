@@ -17,7 +17,10 @@ public class ShadowStalkerAI : MonoBehaviour
     private void Update()
     {
         if (playerFlashlight.enabled && IsInLight())
+        {
+            playerFlashlight.enabled = false;
             DisappearAndRespawn();
+        }
         else
             ChasePlayer();
     }
