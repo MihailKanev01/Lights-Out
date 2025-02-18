@@ -12,7 +12,7 @@ public class Flashlight : MonoBehaviour
     [SerializeField] private Light flashlightLight;
     [SerializeField] private Renderer flashlightRenderer;
     [SerializeField] private float maxBattery = 100f;
-    [SerializeField] private float drainRate = 1f;
+    [SerializeField, Range(0f, 5f)] private float drainRate = 1f;
     [SerializeField] private float lowBatteryThreshold = 20f;
     private float currentBattery;
 
@@ -87,7 +87,7 @@ public class Flashlight : MonoBehaviour
 
         if (currentBattery <= lowBatteryThreshold && !isLowBatteryWarningPlayed)
         {
-            SoundFXManager.Instance?.PlaySoundFXClip(lowBatterySound, transform, 0.5f);
+            SoundFXManager.Instance?.PlaySoundFXClip(lowBatterySound, transform, 0.2f);
             isLowBatteryWarningPlayed = true;
         }
 
