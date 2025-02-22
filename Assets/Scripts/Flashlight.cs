@@ -30,8 +30,11 @@ public class Flashlight : MonoBehaviour
         Debug.Log($"Battery Initialized: {currentBattery}");
         UpdateBatteryUI();
 
+        isFlashlightOn = false;
         if (flashlightObject != null)
             flashlightObject.SetActive(false);
+        if (flashlightLight != null)
+            flashlightLight.enabled = false;
         if (flashlightRenderer != null)
             flashlightRenderer.enabled = false;
     }
@@ -56,6 +59,10 @@ public class Flashlight : MonoBehaviour
         if (flashlightObject != null)
         {
             flashlightObject.SetActive(isFlashlightOn);
+        }
+
+        if (flashlightLight != null)
+        {
             flashlightLight.enabled = isFlashlightOn;
         }
 
@@ -64,14 +71,8 @@ public class Flashlight : MonoBehaviour
             flashlightRenderer.enabled = isFlashlightOn;
         }
 
-        if (isFlashlightOn)
-        {
-            SoundFXManager.Instance?.PlaySoundFXClip(turnOnSound, transform, 0.5f);
-        }
-        else
-        {
-            SoundFXManager.Instance?.PlaySoundFXClip(turnOffSound, transform, 0.5f);
-        }
+        SoundFXManager.Instance?.PlaySoundFXClip(
+            isFlashlightOn ? turnOnSound : turnOffSound, transform, 0.5f);
     }
 
     private void DrainBattery()
@@ -99,18 +100,16 @@ public class Flashlight : MonoBehaviour
 
     private void TurnOffFlashlight()
     {
+        if (!isFlashlightOn) return; 
+
         isFlashlightOn = false;
 
         if (flashlightObject != null)
-        {
             flashlightObject.SetActive(false);
-            flashlightLight.enabled = false;
-        }
-
+        if (flashlightLight != null)
+            flashlightLight.enabled = false; 
         if (flashlightRenderer != null)
-        {
             flashlightRenderer.enabled = false;
-        }
 
         SoundFXManager.Instance?.PlaySoundFXClip(turnOffSound, transform, 0.5f);
     }

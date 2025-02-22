@@ -403,7 +403,7 @@ ModelImporter:
       name: metarig|attack1
       takeName: metarig|attack1
       internalID: 6616240289697625316
-      firstFrame: 0
+      firstFrame: 92
       lastFrame: 168
       wrapMode: 0
       orientationOffsetY: 0
@@ -411,7 +411,7 @@ ModelImporter:
       cycleOffset: 0
       loop: 0
       hasAdditiveReferencePose: 0
-      loopTime: 0
+      loopTime: 1
       loopBlend: 0
       loopBlendOrientation: 0
       loopBlendPositionY: 0
@@ -672,7 +672,7 @@ ModelImporter:
       cycleOffset: 0
       loop: 0
       hasAdditiveReferencePose: 0
-      loopTime: 0
+      loopTime: 1
       loopBlend: 0
       loopBlendOrientation: 0
       loopBlendPositionY: 0

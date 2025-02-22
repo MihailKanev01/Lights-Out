@@ -1,5 +1,5 @@
+﻿using UnityEngine.AI;
 using UnityEngine;
-using UnityEngine.AI;
 
 public class ShadowStalkerAI : MonoBehaviour
 {
@@ -41,34 +41,55 @@ public class ShadowStalkerAI : MonoBehaviour
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
 
         if (distanceToPlayer <= attackRange)
+        {
             AttackTarget();
+        }
         else if (distanceToPlayer <= detectionRange)
+        {
             ChaseTarget();
+        }
         else
+        {
             Idle();
+        }
 
         UpdateAnimator();
-        HandleRotation();
 
-        // Check if the monster is in the flashlight's beam
         if (playerFlashlight.enabled && IsInFlashlight())
         {
+            playerFlashlight.enabled = false;
             Vanish();
         }
     }
-
     bool IsInFlashlight()
     {
-        Vector3 directionToLight = transform.position - playerFlashlight.transform.position;
-        float angle = Vector3.Angle(playerFlashlight.transform.forward, directionToLight);
-        return angle < flashlightAngle && Vector3.Distance(playerFlashlight.transform.position, transform.position) < flashlightDistance;
-    }
+        if (!playerFlashlight.enabled) return false; 
 
+        Vector3 directionToMonster = transform.position - playerFlashlight.transform.position;
+        float angle = Vector3.Angle(playerFlashlight.transform.forward, directionToMonster);
+        float distance = directionToMonster.magnitude;
+
+        Debug.Log($"Flashlight Check - Angle: {angle}, Distance: {distance}");
+
+        return angle < flashlightAngle / 2f && distance < flashlightDistance;
+    }
     void Vanish()
     {
+        if (agent != null && agent.enabled && agent.isOnNavMesh)
+        {
+            agent.isStopped = true;
+            agent.ResetPath();
+            agent.velocity = Vector3.zero;
+            agent.enabled = false; 
+        }
+
         isVanished = true;
         monsterModel.SetActive(false);
-        agent.isStopped = true;
+
+        animator.SetBool("isWalking", false);
+        animator.SetBool("isRunning", false);
+        animator.SetBool("Attack", false);
+
         Debug.Log("Monster vanished!");
 
         Invoke(nameof(RespawnMonster), 2f);
@@ -78,26 +99,68 @@ public class ShadowStalkerAI : MonoBehaviour
     {
         isVanished = false;
         SpawnAtRandomLocation();
+
+        if (agent != null)
+        {
+            agent.enabled = true;
+            if (agent.isOnNavMesh)
+            {
+                agent.isStopped = true;
+                agent.ResetPath();
+            }
+        }
+
         monsterModel.SetActive(true);
-        agent.isStopped = false;
-        Debug.Log("Monster respawned!");
+
+        Debug.Log("Monster respawned and is now idle.");
 
         if (fakeSounds.Length > 0)
             SoundFXManager.Instance.PlayRandomSoundFXClip(fakeSounds, transform, 1f);
     }
-
     void SpawnAtRandomLocation()
     {
-        if (spawnPoints.Length > 0)
+        if (spawnPoints.Length == 0)
         {
-            int randomIndex = Random.Range(0, spawnPoints.Length);
-            transform.position = spawnPoints[randomIndex].position;
+            Debug.LogError("No spawn points assigned!");
+            return;
+        }
+
+        int randomIndex = Random.Range(0, spawnPoints.Length);
+        Vector3 spawnPosition = spawnPoints[randomIndex].position;
+
+        spawnPosition.y = 1.0f; 
+
+        NavMeshHit hit;
+        if (NavMesh.SamplePosition(spawnPosition, out hit, 2.0f, NavMesh.AllAreas))
+        {
+            agent.enabled = false;
+            transform.position = hit.position;
+            agent.enabled = true;
+
+            agent.isStopped = true;
+            agent.ResetPath();
+
+            Debug.Log($"Monster spawned at a valid NavMesh location: {hit.position}");
         }
     }
 
     void AttackTarget()
     {
-        agent.isStopped = true;
+        agent.isStopped = true; 
+        animator.SetBool("Attack", true); 
+
+        Debug.Log("Monster is attacking!");
+
+        Invoke("ResetAttack", 1.5f);
+    }
+    void ResetAttack()
+    {
+        animator.SetBool("Attack", false);
+
+        if (agent != null && agent.enabled && agent.isOnNavMesh)
+        {
+            agent.isStopped = false;
+        }
     }
 
     void ChaseTarget()
@@ -108,12 +171,18 @@ public class ShadowStalkerAI : MonoBehaviour
 
     void Idle()
     {
-        agent.isStopped = true;
+        if (agent != null && agent.enabled && agent.isOnNavMesh)
+        {
+            agent.isStopped = true;
+            agent.ResetPath();
+        }
+
+        Debug.Log("Monster is idle.");
     }
 
     void HandleRotation()
     {
-        if (agent.velocity.sqrMagnitude > 0.01f) // If moving
+        if (agent.velocity.sqrMagnitude > 0.01f) 
         {
             Quaternion targetRotation = Quaternion.LookRotation(agent.velocity.normalized);
             transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
@@ -122,23 +191,14 @@ public class ShadowStalkerAI : MonoBehaviour
 
     void UpdateAnimator()
     {
+        if (agent == null || !agent.enabled || !agent.isOnNavMesh) return; 
+
         Vector3 movementDirection = agent.velocity;
         bool isMoving = movementDirection != Vector3.zero;
 
-        // Walking
         animator.SetBool("isWalking", isMoving);
-
-        // Running (if the agent has a path and is moving fast)
         animator.SetBool("isRunning", isMoving && agent.hasPath && agent.velocity.magnitude > 3.5f);
-
-        // Attacking (if the agent is stopped and in attack range)
         animator.SetBool("Attack", agent.isStopped);
-
-        // Rotate towards movement direction
-        if (isMoving)
-        {
-            Quaternion toRotation = Quaternion.LookRotation(movementDirection, Vector3.up);
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, toRotation, agent.angularSpeed * Time.deltaTime);
-        }
     }
+
 }

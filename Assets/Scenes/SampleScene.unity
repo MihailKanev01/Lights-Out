@@ -8892,7 +8892,7 @@ Transform:
   m_GameObject: {fileID: 919132149001452856}
   serializedVersion: 2
   m_LocalRotation: {x: -0.000000081460335, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.0028, y: -0.039, z: -0.0096}
+  m_LocalPosition: {x: 0.0005, y: -0.0311, z: 0.00421}
   m_LocalScale: {x: 0.008, y: 0.008, z: 0.008}
   m_ConstrainProportionsScale: 1
   m_Children:
@@ -9263,7 +9263,7 @@ GameObject:
   m_Component:
   - component: {fileID: 543450652654643074}
   - component: {fileID: 5866666020991860216}
-  - component: {fileID: 5866666020991860217}
+  - component: {fileID: 5866666020991860218}
   m_Layer: 0
   m_Name: rake remake fingers
   m_TagString: Untagged
@@ -9834,14 +9834,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 222}
   m_SizeDelta: {x: 450, y: 150}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!33 &1900277520176307288
-MeshFilter:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2790876552042875207}
-  m_Mesh: {fileID: -6104547654859108539, guid: 3e1436aea9a674749aaf520d68ec475e, type: 3}
 --- !u!4 &1936094292219702413
 Transform:
   m_ObjectHideFlags: 0
@@ -10567,7 +10559,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3310426940758545405}
-  - component: {fileID: 1900277520176307288}
   - component: {fileID: 4448381190525954195}
   - component: {fileID: 4448381190525954197}
   - component: {fileID: 4448381190525954196}
@@ -12071,7 +12062,7 @@ NavMeshAgent:
   m_GameObject: {fileID: 2790876552042875207}
   m_Enabled: 1
   m_AgentTypeID: -334000983
-  m_Radius: 0.02
+  m_Radius: 0.01
   m_Speed: 10
   m_Acceleration: 8
   avoidancePriority: 50
@@ -12099,11 +12090,11 @@ MonoBehaviour:
   agent: {fileID: 4448381190525954195}
   animator: {fileID: 5866666020991860216}
   spawnPoints:
-  - {fileID: 26861791}
   - {fileID: 904411748}
+  - {fileID: 26861791}
   player: {fileID: 3893294199639930361}
   detectionRange: 10
-  attackRange: 2
+  attackRange: 3
   rotationSpeed: 5
   monsterModel: {fileID: 919132149001452856}
   playerFlashlight: {fileID: 5141747210464056966}
@@ -13103,8 +13094,8 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
---- !u!65 &5866666020991860217
-BoxCollider:
+--- !u!136 &5866666020991860218
+CapsuleCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -13121,9 +13112,11 @@ BoxCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 5.03, y: 3.9, z: 9.36}
-  m_Center: {x: 0, y: 3.32, z: 1.72}
+  serializedVersion: 2
+  m_Radius: 1.2
+  m_Height: 9.35
+  m_Direction: 1
+  m_Center: {x: 0, y: 3.8, z: -0.57}
 --- !u!114 &5885216829670671795
 MonoBehaviour:
   m_ObjectHideFlags: 0
