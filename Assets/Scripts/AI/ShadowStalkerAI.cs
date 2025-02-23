@@ -18,23 +18,14 @@ public class ShadowStalkerAI : MonoBehaviour
     public float waypointThreshold = 1.0f;
     public bool isPatrolling = true;
 
-    [Header("Flashlight Settings")]
-    public Light playerFlashlight;
-    public float flashlightAngle = 30f;
-    public float flashlightDistance = 10f;
-
     [Header("Sounds")]
     public AudioClip[] fakeSounds;
-
-    private bool isVanished = false;
 
     void Start()
     {
         if (agent == null) agent = GetComponent<NavMeshAgent>();
         if (animator == null) animator = GetComponent<Animator>();
-        if (playerFlashlight == null) Debug.LogError("Flashlight reference is missing!");
 
-        // Remove spawn logic
         if (waypoints.Length > 0)
         {
             transform.position = waypoints[0].position; // Start at first waypoint
@@ -43,7 +34,7 @@ public class ShadowStalkerAI : MonoBehaviour
 
     void Update()
     {
-        if (player == null || isVanished) return;
+        if (player == null) return;
 
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
 
@@ -61,12 +52,6 @@ public class ShadowStalkerAI : MonoBehaviour
         }
 
         UpdateAnimator();
-
-        if (playerFlashlight.enabled && IsInFlashlight())
-        {
-            playerFlashlight.enabled = false;
-            Vanish();
-        }
     }
 
     void Patrol()
@@ -85,39 +70,6 @@ public class ShadowStalkerAI : MonoBehaviour
                 agent.SetDestination(waypoints[currentWaypointIndex].position);
             }
         }
-    }
-
-    bool IsInFlashlight()
-    {
-        if (!playerFlashlight.enabled) return false;
-
-        Vector3 directionToMonster = transform.position - playerFlashlight.transform.position;
-        float angle = Vector3.Angle(playerFlashlight.transform.forward, directionToMonster);
-        float distance = directionToMonster.magnitude;
-
-        Debug.Log($"Flashlight Check - Angle: {angle}, Distance: {distance}");
-
-        return angle < flashlightAngle / 2f && distance < flashlightDistance;
-    }
-
-    void Vanish()
-    {
-        if (agent != null && agent.enabled && agent.isOnNavMesh)
-        {
-            agent.isStopped = true;
-            agent.ResetPath();
-            agent.velocity = Vector3.zero;
-            agent.enabled = false;
-        }
-
-        isVanished = true;
-        monsterModel.SetActive(false);
-
-        animator.SetBool("isWalking", false);
-        animator.SetBool("isRunning", false);
-        animator.SetBool("Attack", false);
-
-        Debug.Log("Monster vanished!");
     }
 
     void AttackTarget()
