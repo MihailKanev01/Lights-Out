@@ -6,14 +6,17 @@ public class ShadowStalkerAI : MonoBehaviour
     [Header("AI Settings")]
     public NavMeshAgent agent;
     public Animator animator;
-    public Transform[] spawnPoints;
     public Transform player;
+    public Transform[] waypoints;
 
     [Header("AI Behavior")]
     public float detectionRange = 10f;
     public float attackRange = 2f;
     public float rotationSpeed = 5f;
     public GameObject monsterModel;
+    private int currentWaypointIndex = 0;
+    public float waypointThreshold = 1.0f;
+    public bool isPatrolling = true;
 
     [Header("Flashlight Settings")]
     public Light playerFlashlight;
@@ -31,7 +34,11 @@ public class ShadowStalkerAI : MonoBehaviour
         if (animator == null) animator = GetComponent<Animator>();
         if (playerFlashlight == null) Debug.LogError("Flashlight reference is missing!");
 
-        SpawnAtRandomLocation();
+        // Remove spawn logic
+        if (waypoints.Length > 0)
+        {
+            transform.position = waypoints[0].position; // Start at first waypoint
+        }
     }
 
     void Update()
@@ -50,7 +57,7 @@ public class ShadowStalkerAI : MonoBehaviour
         }
         else
         {
-            Idle();
+            Patrol();
         }
 
         UpdateAnimator();
@@ -61,9 +68,28 @@ public class ShadowStalkerAI : MonoBehaviour
             Vanish();
         }
     }
+
+    void Patrol()
+    {
+        if (waypoints.Length == 0 || !isPatrolling) return;
+
+        if (agent.enabled && agent.isOnNavMesh)
+        {
+            agent.speed = 3.2f;
+            animator.SetBool("isWalking", true);
+            animator.SetBool("isRunning", false);
+            agent.isStopped = false;
+            if (!agent.hasPath || agent.remainingDistance < waypointThreshold)
+            {
+                currentWaypointIndex = (currentWaypointIndex + 1) % waypoints.Length;
+                agent.SetDestination(waypoints[currentWaypointIndex].position);
+            }
+        }
+    }
+
     bool IsInFlashlight()
     {
-        if (!playerFlashlight.enabled) return false; 
+        if (!playerFlashlight.enabled) return false;
 
         Vector3 directionToMonster = transform.position - playerFlashlight.transform.position;
         float angle = Vector3.Angle(playerFlashlight.transform.forward, directionToMonster);
@@ -73,6 +99,7 @@ public class ShadowStalkerAI : MonoBehaviour
 
         return angle < flashlightAngle / 2f && distance < flashlightDistance;
     }
+
     void Vanish()
     {
         if (agent != null && agent.enabled && agent.isOnNavMesh)
@@ -80,7 +107,7 @@ public class ShadowStalkerAI : MonoBehaviour
             agent.isStopped = true;
             agent.ResetPath();
             agent.velocity = Vector3.zero;
-            agent.enabled = false; 
+            agent.enabled = false;
         }
 
         isVanished = true;
@@ -91,68 +118,18 @@ public class ShadowStalkerAI : MonoBehaviour
         animator.SetBool("Attack", false);
 
         Debug.Log("Monster vanished!");
-
-        Invoke(nameof(RespawnMonster), 2f);
-    }
-
-    void RespawnMonster()
-    {
-        isVanished = false;
-        SpawnAtRandomLocation();
-
-        if (agent != null)
-        {
-            agent.enabled = true;
-            if (agent.isOnNavMesh)
-            {
-                agent.isStopped = true;
-                agent.ResetPath();
-            }
-        }
-
-        monsterModel.SetActive(true);
-
-        Debug.Log("Monster respawned and is now idle.");
-
-        if (fakeSounds.Length > 0)
-            SoundFXManager.Instance.PlayRandomSoundFXClip(fakeSounds, transform, 1f);
-    }
-    void SpawnAtRandomLocation()
-    {
-        if (spawnPoints.Length == 0)
-        {
-            Debug.LogError("No spawn points assigned!");
-            return;
-        }
-
-        int randomIndex = Random.Range(0, spawnPoints.Length);
-        Vector3 spawnPosition = spawnPoints[randomIndex].position;
-
-        spawnPosition.y = 1.0f; 
-
-        NavMeshHit hit;
-        if (NavMesh.SamplePosition(spawnPosition, out hit, 2.0f, NavMesh.AllAreas))
-        {
-            agent.enabled = false;
-            transform.position = hit.position;
-            agent.enabled = true;
-
-            agent.isStopped = true;
-            agent.ResetPath();
-
-            Debug.Log($"Monster spawned at a valid NavMesh location: {hit.position}");
-        }
     }
 
     void AttackTarget()
     {
-        agent.isStopped = true; 
-        animator.SetBool("Attack", true); 
+        agent.isStopped = true;
+        animator.SetBool("Attack", true);
 
         Debug.Log("Monster is attacking!");
 
         Invoke("ResetAttack", 1.5f);
     }
+
     void ResetAttack()
     {
         animator.SetBool("Attack", false);
@@ -165,33 +142,17 @@ public class ShadowStalkerAI : MonoBehaviour
 
     void ChaseTarget()
     {
+        agent.speed = 7f;
         agent.isStopped = false;
         agent.SetDestination(player.position);
-    }
 
-    void Idle()
-    {
-        if (agent != null && agent.enabled && agent.isOnNavMesh)
-        {
-            agent.isStopped = true;
-            agent.ResetPath();
-        }
-
-        Debug.Log("Monster is idle.");
-    }
-
-    void HandleRotation()
-    {
-        if (agent.velocity.sqrMagnitude > 0.01f) 
-        {
-            Quaternion targetRotation = Quaternion.LookRotation(agent.velocity.normalized);
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
-        }
+        animator.SetBool("isWalking", false);
+        animator.SetBool("isRunning", true);
     }
 
     void UpdateAnimator()
     {
-        if (agent == null || !agent.enabled || !agent.isOnNavMesh) return; 
+        if (agent == null || !agent.enabled || !agent.isOnNavMesh) return;
 
         Vector3 movementDirection = agent.velocity;
         bool isMoving = movementDirection != Vector3.zero;
@@ -200,5 +161,4 @@ public class ShadowStalkerAI : MonoBehaviour
         animator.SetBool("isRunning", isMoving && agent.hasPath && agent.velocity.magnitude > 3.5f);
         animator.SetBool("Attack", agent.isStopped);
     }
-
 }
