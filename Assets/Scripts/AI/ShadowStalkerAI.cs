@@ -1,5 +1,6 @@
 ﻿using UnityEngine.AI;
 using UnityEngine;
+using System.Collections;
 
 public class ShadowStalkerAI : MonoBehaviour
 {
@@ -17,6 +18,8 @@ public class ShadowStalkerAI : MonoBehaviour
     private int currentWaypointIndex = 0;
     public float waypointThreshold = 1.0f;
     public bool isPatrolling = true;
+    private bool isSearching = false;
+    public float searchDuration = 2f;
 
     [Header("Sounds")]
     public AudioClip[] fakeSounds;
@@ -28,7 +31,10 @@ public class ShadowStalkerAI : MonoBehaviour
 
         if (waypoints.Length > 0)
         {
-            transform.position = waypoints[0].position; // Start at first waypoint
+            transform.position = waypoints[0].position; 
+            currentWaypointIndex = 0;
+            agent.SetDestination(waypoints[currentWaypointIndex].position);
+            agent.isStopped = false;
         }
     }
 
@@ -37,6 +43,11 @@ public class ShadowStalkerAI : MonoBehaviour
         if (player == null) return;
 
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
+        if (!isSearching && agent.remainingDistance > 0f && agent.remainingDistance <= waypointThreshold && !agent.pathPending)
+        {
+            StartCoroutine(SearchRoutine());
+            return;
+        }
 
         if (distanceToPlayer <= attackRange)
         {
@@ -60,16 +71,38 @@ public class ShadowStalkerAI : MonoBehaviour
 
         if (agent.enabled && agent.isOnNavMesh)
         {
+
             agent.speed = 3.2f;
             animator.SetBool("isWalking", true);
             animator.SetBool("isRunning", false);
             agent.isStopped = false;
+
             if (!agent.hasPath || agent.remainingDistance < waypointThreshold)
             {
                 currentWaypointIndex = (currentWaypointIndex + 1) % waypoints.Length;
                 agent.SetDestination(waypoints[currentWaypointIndex].position);
             }
         }
+    }
+
+    IEnumerator SearchRoutine()
+    {
+        isSearching = true;
+        agent.isStopped = true;
+        agent.velocity = Vector3.zero;
+        agent.updatePosition = false;
+        agent.enabled = false;
+        animator.SetTrigger("Search");
+        animator.SetBool("isWalking", false);
+
+        yield return new WaitForSeconds(searchDuration);
+
+        agent.enabled = true;
+        agent.updatePosition = true;
+        currentWaypointIndex = (currentWaypointIndex + 1) % waypoints.Length;
+        agent.SetDestination(waypoints[currentWaypointIndex].position);
+        agent.isStopped = false;
+        isSearching = false;
     }
 
     void AttackTarget()
