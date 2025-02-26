@@ -5,7 +5,9 @@ public class Flashlight : MonoBehaviour
 {
     [Header("UI")]
     [SerializeField] private Slider batterySlider;
-    [SerializeField] private Image fillImage;
+    [SerializeField] private Image batteryImage;
+    [SerializeField] private Image sanityImage;
+    [SerializeField] private Slider sanitySlider; 
 
     [Header("Flashlight Settings")]
     [SerializeField] private GameObject flashlightObject;
@@ -15,6 +17,12 @@ public class Flashlight : MonoBehaviour
     [SerializeField, Range(0f, 5f)] private float drainRate = 1f;
     [SerializeField] private float lowBatteryThreshold = 20f;
     private float currentBattery;
+
+    [Header("Sanity System")] // 🟢 New Sanity Variables
+    [SerializeField] private float maxSanity = 100f;
+    [SerializeField] private float sanityDrainRate = 5f; 
+    [SerializeField] private float sanityRegenRate = 10f; 
+    private float currentSanity;
 
     [Header("Sound FX")]
     [SerializeField] private AudioClip turnOnSound;
@@ -27,16 +35,14 @@ public class Flashlight : MonoBehaviour
     private void Start()
     {
         currentBattery = maxBattery;
-        Debug.Log($"Battery Initialized: {currentBattery}");
+        currentSanity = maxSanity; 
         UpdateBatteryUI();
+        UpdateSanityUI(); 
 
         isFlashlightOn = false;
-        if (flashlightObject != null)
-            flashlightObject.SetActive(false);
-        if (flashlightLight != null)
-            flashlightLight.enabled = false;
-        if (flashlightRenderer != null)
-            flashlightRenderer.enabled = false;
+        if (flashlightObject != null) flashlightObject.SetActive(false);
+        if (flashlightLight != null) flashlightLight.enabled = false;
+        if (flashlightRenderer != null) flashlightRenderer.enabled = false;
     }
 
     private void Update()
@@ -49,6 +55,11 @@ public class Flashlight : MonoBehaviour
         if (isFlashlightOn)
         {
             DrainBattery();
+            RegenerateSanity(); 
+        }
+        else
+        {
+            DrainSanity();
         }
     }
 
@@ -56,20 +67,9 @@ public class Flashlight : MonoBehaviour
     {
         isFlashlightOn = !isFlashlightOn;
 
-        if (flashlightObject != null)
-        {
-            flashlightObject.SetActive(isFlashlightOn);
-        }
-
-        if (flashlightLight != null)
-        {
-            flashlightLight.enabled = isFlashlightOn;
-        }
-
-        if (flashlightRenderer != null)
-        {
-            flashlightRenderer.enabled = isFlashlightOn;
-        }
+        if (flashlightObject != null) flashlightObject.SetActive(isFlashlightOn);
+        if (flashlightLight != null) flashlightLight.enabled = isFlashlightOn;
+        if (flashlightRenderer != null) flashlightRenderer.enabled = isFlashlightOn;
 
         SoundFXManager.Instance?.PlaySoundFXClip(
             isFlashlightOn ? turnOnSound : turnOffSound, transform, 0.5f);
@@ -100,16 +100,13 @@ public class Flashlight : MonoBehaviour
 
     private void TurnOffFlashlight()
     {
-        if (!isFlashlightOn) return; 
+        if (!isFlashlightOn) return;
 
         isFlashlightOn = false;
 
-        if (flashlightObject != null)
-            flashlightObject.SetActive(false);
-        if (flashlightLight != null)
-            flashlightLight.enabled = false; 
-        if (flashlightRenderer != null)
-            flashlightRenderer.enabled = false;
+        if (flashlightObject != null) flashlightObject.SetActive(false);
+        if (flashlightLight != null) flashlightLight.enabled = false;
+        if (flashlightRenderer != null) flashlightRenderer.enabled = false;
 
         SoundFXManager.Instance?.PlaySoundFXClip(turnOffSound, transform, 0.5f);
     }
@@ -117,10 +114,7 @@ public class Flashlight : MonoBehaviour
     public void RechargeBattery(float amount)
     {
         currentBattery += amount;
-        if (currentBattery > maxBattery)
-        {
-            currentBattery = maxBattery;
-        }
+        if (currentBattery > maxBattery) currentBattery = maxBattery;
 
         UpdateBatteryUI();
     }
@@ -130,21 +124,48 @@ public class Flashlight : MonoBehaviour
         if (batterySlider != null)
         {
             batterySlider.value = currentBattery / maxBattery;
-            Debug.Log($"Battery: {currentBattery}, Slider Value: {batterySlider.value}");
         }
         UpdateSliderColor();
     }
 
     private void UpdateSliderColor()
     {
-        if (fillImage != null)
+        if (batteryImage != null)
         {
             if (currentBattery > 50)
-                fillImage.color = Color.green;
+                batteryImage.color = Color.green;
             else if (currentBattery > 20)
-                fillImage.color = Color.yellow;
+                batteryImage.color = Color.yellow;
             else
-                fillImage.color = Color.red;
+                batteryImage.color = Color.red;
+        }
+    }
+
+    private void DrainSanity()
+    {
+        currentSanity -= sanityDrainRate * Time.deltaTime;
+        if (currentSanity < 0) currentSanity = 0;
+
+        UpdateSanityUI();
+    }
+
+    private void RegenerateSanity()
+    {
+        currentSanity += sanityRegenRate * Time.deltaTime;
+        if (currentSanity > maxSanity) currentSanity = maxSanity;
+
+        UpdateSanityUI();
+    }
+
+    private void UpdateSanityUI()
+    {
+        if (sanitySlider != null)
+        {
+            sanitySlider.value = currentSanity / maxSanity;
+        }
+        if (sanityImage != null)
+        {
+                sanityImage.color = Color.red;
         }
     }
 }
