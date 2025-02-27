@@ -14,7 +14,7 @@ public class Flashlight : MonoBehaviour
     [SerializeField] private Light flashlightLight;
     [SerializeField] private Renderer flashlightRenderer;
     [SerializeField] private float maxBattery = 100f;
-    [SerializeField, Range(0f, 5f)] private float drainRate = 1f;
+    [SerializeField] private float drainRate = 1f;
     [SerializeField] private float lowBatteryThreshold = 20f;
     private float currentBattery;
 
@@ -83,6 +83,7 @@ public class Flashlight : MonoBehaviour
         if (currentBattery <= 0)
         {
             currentBattery = 0;
+            batteryImage.enabled = false;
             TurnOffFlashlight();
         }
 
@@ -114,7 +115,11 @@ public class Flashlight : MonoBehaviour
     public void RechargeBattery(float amount)
     {
         currentBattery += amount;
-        if (currentBattery > maxBattery) currentBattery = maxBattery;
+        if (currentBattery > maxBattery)
+        {
+            currentBattery = maxBattery;
+            batteryImage.enabled = true;
+        }
 
         UpdateBatteryUI();
     }
@@ -144,17 +149,30 @@ public class Flashlight : MonoBehaviour
     private void DrainSanity()
     {
         currentSanity -= sanityDrainRate * Time.deltaTime;
-        if (currentSanity < 0) currentSanity = 0;
+        if (currentSanity < 0)
+        {
+            currentSanity = 0;
+            sanityImage.enabled = false;
+        }
 
-        UpdateSanityUI();
+            UpdateSanityUI();
     }
 
     private void RegenerateSanity()
     {
         currentSanity += sanityRegenRate * Time.deltaTime;
-        if (currentSanity > maxSanity) currentSanity = maxSanity;
+        if (currentSanity > maxSanity)
+        {
+            currentSanity = maxSanity;
+            sanityImage.enabled = true;
+        }
 
         UpdateSanityUI();
+    }
+
+    public float GetSanity()
+    {
+        return currentSanity;
     }
 
     private void UpdateSanityUI()
@@ -165,7 +183,7 @@ public class Flashlight : MonoBehaviour
         }
         if (sanityImage != null)
         {
-                sanityImage.color = Color.red;
+            sanityImage.color = Color.red;
         }
     }
 }

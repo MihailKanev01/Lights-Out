@@ -33,6 +33,8 @@ namespace StarterAssets
         public GameObject CinemachineCameraTarget;
         public float TopClamp = 90.0f;
         public float BottomClamp = -90.0f;
+        [SerializeField, Range(0f, 10f)] private float _tiltMultiplier;
+
 
         [Header("Head Bobbing")]
         public float BobAmplitude = 0.05f;
@@ -68,6 +70,11 @@ namespace StarterAssets
         private bool _footstepPlayedCycle = false;
         //private bool _isFalling = false;
         private bool _landed = false;
+
+        #region Camera Variables
+        private float _currentTilt = 0f;
+        private float _tiltVelocity;
+        #endregion
 
 #if ENABLE_INPUT_SYSTEM
         private PlayerInput _playerInput;
@@ -131,13 +138,18 @@ namespace StarterAssets
             {
                 float deltaTimeMultiplier = IsCurrentDeviceMouse ? 1.0f : Time.deltaTime;
 
+                // Update camera pitch and rotation
                 _cinemachineTargetPitch += _input.look.y * RotationSpeed * deltaTimeMultiplier;
                 _rotationVelocity = _input.look.x * RotationSpeed * deltaTimeMultiplier;
 
-                // Clamping Vertical Rotation
                 _cinemachineTargetPitch = Mathf.Clamp(_cinemachineTargetPitch, BottomClamp, TopClamp);
 
-                CinemachineCameraTarget.transform.localRotation = Quaternion.Euler(_cinemachineTargetPitch, 0.0f, 0.0f);
+                // Implement camera tilt
+                float targetTilt = -_input.look.x * _tiltMultiplier;
+                _currentTilt = Mathf.SmoothDamp(_currentTilt, targetTilt, ref _tiltVelocity, 0.1f);
+
+                // Apply rotation and tilt
+                CinemachineCameraTarget.transform.localRotation = Quaternion.Euler(_cinemachineTargetPitch, 0.0f, _currentTilt);
                 transform.Rotate(Vector3.up * _rotationVelocity);
             }
         }
