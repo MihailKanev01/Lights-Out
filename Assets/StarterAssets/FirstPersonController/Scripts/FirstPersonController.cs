@@ -35,7 +35,6 @@ namespace StarterAssets
         public float BottomClamp = -90.0f;
         [SerializeField, Range(0f, 10f)] private float _tiltMultiplier;
 
-
         [Header("Head Bobbing")]
         public float BobAmplitude = 0.05f;
         public float BobFrequency = 10f;
@@ -48,6 +47,9 @@ namespace StarterAssets
         [SerializeField] private AudioClip jump;
         [SerializeField] private AudioClip land;
 
+        // Control state
+        private bool _controlsLocked = false;
+
         // Movement Variables
         private float _speed;
         private float _rotationVelocity;
@@ -57,7 +59,7 @@ namespace StarterAssets
         private float _fallTimeoutDelta;
 
         // Camera Rotation
-        private float _cinemachineTargetPitch = 0f; // FIX: Added missing variable
+        private float _cinemachineTargetPitch = 0f;
 
         // Components
         private CharacterController _controller;
@@ -68,7 +70,6 @@ namespace StarterAssets
         private Vector3 _headStartPosition;
         private float _bobTimer = 0f;
         private bool _footstepPlayedCycle = false;
-        //private bool _isFalling = false;
         private bool _landed = false;
 
         #region Camera Variables
@@ -107,15 +108,36 @@ namespace StarterAssets
 
         private void Update()
         {
-            JumpAndGravity();
-            GroundedCheck();
-            Move();
-            HandleHeadBob();
+            if (!_controlsLocked)
+            {
+                JumpAndGravity();
+                GroundedCheck();
+                Move();
+                HandleHeadBob();
+            }
         }
 
         private void LateUpdate()
         {
-            CameraRotation();
+            if (!_controlsLocked)
+            {
+                CameraRotation();
+            }
+        }
+
+        // Public method to lock/unlock player controls
+        public void LockControls(bool locked)
+        {
+            _controlsLocked = locked;
+
+            // Reset input values when controls are locked
+            if (locked)
+            {
+                _input.move = Vector2.zero;
+                _input.look = Vector2.zero;
+                _input.jump = false;
+                _input.sprint = false;
+            }
         }
 
         private void GroundedCheck()

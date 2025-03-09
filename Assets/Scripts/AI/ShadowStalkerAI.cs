@@ -1,6 +1,8 @@
 ﻿using UnityEngine.AI;
 using UnityEngine;
 using System.Collections;
+using Unity.AI.Navigation;
+using UnityEngine.SceneManagement;
 
 public class ShadowStalkerAI : MonoBehaviour
 {
@@ -9,6 +11,7 @@ public class ShadowStalkerAI : MonoBehaviour
     public Animator animator;
     public Transform player;
     public Transform[] waypoints;
+    public Camera playerCamera;
 
     [Header("AI Behavior")]
     public float detectionRange = 10f;
@@ -19,12 +22,17 @@ public class ShadowStalkerAI : MonoBehaviour
     public float waypointThreshold = 1.0f;
     public bool isPatrolling = true;
     private bool isSearching = false;
-    public float searchDuration = 4f;
+    public float searchDuration = 2f;
+
+    [Header("Jumpscare Settings")]
+    public float cameraShakeIntensity = 10f;
+    public float cameraShakeDuration = 0.5f;
+    public float cameraRotationSpeed = 5f;
+    public float jumpscareDelay = 1.5f;
 
     [Header("Footstep Settings")]
-    public float footstepInterval = 0.5f; // Time between footstep sounds
+    public float footstepInterval = 0.5f;
     private float footstepTimer = 0f;
-
 
     [Header("AI Sounds")]
     public AudioClip walkingSound;
@@ -32,17 +40,21 @@ public class ShadowStalkerAI : MonoBehaviour
     public AudioClip attackSound;
 
     [Header("AI Attack Settings")]
-    public float attackCooldown = 2f; // Cooldown time in seconds
-    private bool isAttacking = false; // Tracks if attack is in progress
+    public float attackCooldown = 2f;
+    private bool isAttacking = false;
+
+    private StarterAssets.FirstPersonController playerController;
 
     void Start()
     {
         if (agent == null) agent = GetComponent<NavMeshAgent>();
         if (animator == null) animator = GetComponent<Animator>();
+        if (playerCamera == null) playerCamera = Camera.main;
+        if (player != null) playerController = player.GetComponent<StarterAssets.FirstPersonController>();
 
         if (waypoints.Length > 0)
         {
-            transform.position = waypoints[0].position; 
+            transform.position = waypoints[0].position;
             currentWaypointIndex = 0;
             agent.SetDestination(waypoints[currentWaypointIndex].position);
             agent.isStopped = false;
@@ -66,6 +78,7 @@ public class ShadowStalkerAI : MonoBehaviour
             ChaseTarget();
             return;
         }
+
         if (!isSearching && agent.remainingDistance > 0f && agent.remainingDistance <= waypointThreshold && !agent.pathPending)
         {
             StartCoroutine(SearchRoutine());
@@ -90,26 +103,25 @@ public class ShadowStalkerAI : MonoBehaviour
 
     void Patrol()
     {
-        if (waypoints.Length == 0 || !isPatrolling) return;
+        if (waypoints.Length == 0 || !isPatrolling || isSearching) return;
 
         if (agent.enabled && agent.isOnNavMesh)
         {
-
             agent.speed = 3.2f;
             animator.SetBool("isWalking", true);
-            
             animator.SetBool("isRunning", false);
             agent.isStopped = false;
             agent.updatePosition = true;
 
             if (!agent.hasPath || agent.remainingDistance < waypointThreshold)
             {
-                currentWaypointIndex = (currentWaypointIndex + 1) % waypoints.Length;
-                agent.SetDestination(waypoints[currentWaypointIndex].position);
+                StartCoroutine(SearchRoutine()); // Start the search delay
             }
+
             PlayFootstepSound();
         }
     }
+
     IEnumerator SearchRoutine()
     {
         isSearching = true;
@@ -118,14 +130,12 @@ public class ShadowStalkerAI : MonoBehaviour
         agent.updatePosition = false;
         agent.enabled = false;
 
-        animator.SetTrigger("Search");
+        animator.SetBool("isSearching", true);
         animator.SetBool("isWalking", false);
 
         yield return new WaitForSeconds(searchDuration);
 
-
         agent.enabled = true;
-        yield return null;
 
         if (!agent.isOnNavMesh)
         {
@@ -136,61 +146,121 @@ public class ShadowStalkerAI : MonoBehaviour
                 agent.Warp(hit.position);
             }
         }
-                agent.updatePosition = true;
-                currentWaypointIndex = (currentWaypointIndex + 1) % waypoints.Length;
-                agent.SetDestination(waypoints[currentWaypointIndex].position);
-                agent.isStopped = false;
 
-            isSearching = false;
+        agent.updatePosition = true;
+        currentWaypointIndex = (currentWaypointIndex + 1) % waypoints.Length;
+        agent.SetDestination(waypoints[currentWaypointIndex].position);
+        agent.isStopped = false;
+
+        isSearching = false;
     }
 
     void AttackTarget()
     {
-        if (isAttacking) return; // Prevent multiple attacks at once
+        if (isAttacking) return;
 
         isAttacking = true;
-        agent.isStopped = true;
+        isSearching = false;
 
-        animator.SetBool("Attack", true);
-        PlayAttackSound();
-        Debug.Log("Monster is attacking!");
-
-        Invoke("ResetAttack", 1.5f); // Wait for animation to finish
-        Invoke("EnableAttack", attackCooldown); // Re-enable attack after cooldown
-    }
-    void EnableAttack()
-    {
-        isAttacking = false; // Allow next attack
-    }
-    void ResetAttack()
-    {
-        animator.SetBool("Attack", false);
-        if (agent.isOnNavMesh)
+        // Only stop the agent if it's valid
+        if (agent != null && agent.enabled && agent.isOnNavMesh)
         {
-            agent.isStopped = false;
+            agent.isStopped = true;
         }
+
+        animator.SetBool("isAttacking", true);
+        animator.SetBool("isSearching", false);
+        PlayAttackSound();
+
+        // Lock player controls if available
+        if (playerController != null)
+        {
+            playerController.LockControls(true);
+        }
+
+        // Start the jumpscare sequence
+        StartCoroutine(GameOverSequence());
+    }
+    IEnumerator GameOverSequence()
+    {
+        if (playerCamera != null)
+        {
+            // First shake the camera slightly
+            for (int i = 0; i < 5; i++)
+            {
+                playerCamera.transform.Rotate(Random.Range(-cameraShakeIntensity, cameraShakeIntensity),
+                                             Random.Range(-cameraShakeIntensity, cameraShakeIntensity), 0);
+                yield return new WaitForSeconds(0.05f);
+            }
+
+            // Then smoothly rotate camera to face the monster
+            float duration = cameraShakeDuration;
+            float elapsedTime = 0f;
+
+            while (elapsedTime < duration)
+            {
+                Vector3 direction = (transform.position - playerCamera.transform.position).normalized;
+                Quaternion lookRotation = Quaternion.LookRotation(direction);
+                playerCamera.transform.rotation = Quaternion.Slerp(playerCamera.transform.rotation, lookRotation, Time.deltaTime * cameraRotationSpeed);
+                elapsedTime += Time.deltaTime;
+                yield return null;
+            }
+
+            // Ensure it's directly facing monster at the end
+            Vector3 finalDirection = (transform.position - playerCamera.transform.position).normalized;
+            playerCamera.transform.rotation = Quaternion.LookRotation(finalDirection);
+        }
+
+        // Pause for the jumpscare effect
+        yield return new WaitForSeconds(jumpscareDelay);
+
+        // Finally trigger game over
+        GameOver();
+    }
+
+    void GameOver()
+    {
+        Debug.Log("GAME OVER");
+        SceneManager.LoadScene("GameOverScene");
     }
 
     void ChaseTarget()
     {
-        if (agent != null && agent.enabled && agent.isOnNavMesh)
+        // First check if agent is valid and on NavMesh before using it
+        if (agent == null || !agent.enabled)
         {
-            agent.speed = 7f;
-            agent.isStopped = false;
-            agent.SetDestination(player.position);
-            agent.enabled = true;
-            agent.updatePosition = true;
-            agent.Warp(player.position);
-
-            animator.SetBool("isWalking", false);
-            animator.SetBool("isRunning", true);
-
-            PlayFootstepSound();
+            Debug.LogWarning("NavMeshAgent is null or disabled during chase");
+            return;
         }
-        else
+
+        // Check if agent is on NavMesh
+        if (!agent.isOnNavMesh)
         {
-            Debug.LogError("ChaseTarget() called but agent is not on NavMesh!");
+            Debug.LogWarning("NavMeshAgent is not on NavMesh during chase, attempting to relocate");
+
+            // Try to find a valid position on NavMesh and warp to it
+            NavMeshHit hit;
+            if (NavMesh.SamplePosition(transform.position, out hit, 5f, NavMesh.AllAreas))
+            {
+                agent.Warp(hit.position);
+            }
+            else
+            {
+                Debug.LogError("Failed to find valid NavMesh position during chase");
+                return;
+            }
         }
+
+        // Now that we've verified the agent is valid, proceed with chase
+        agent.speed = 7f;
+        agent.isStopped = false;
+        agent.SetDestination(player.position);
+        agent.updatePosition = true;
+
+        animator.SetBool("isWalking", false);
+        animator.SetBool("isRunning", true);
+
+        PlayFootstepSound();
     }
 
     void UpdateAnimator()
@@ -207,12 +277,12 @@ public class ShadowStalkerAI : MonoBehaviour
 
     void PlayFootstepSound()
     {
-        if (footstepTimer > 0) return; // Prevent spamming footstep sounds
+        if (footstepTimer > 0) return;
 
         AudioClip clipToPlay = agent.speed > 3.5f ? runningSound : walkingSound;
         SoundFXManager.Instance.PlaySoundFXClip(clipToPlay, transform, 1f);
 
-        footstepTimer = footstepInterval; // Reset timer
+        footstepTimer = footstepInterval;
     }
 
     void PlayAttackSound()
