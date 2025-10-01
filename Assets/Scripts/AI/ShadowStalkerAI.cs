@@ -1,8 +1,6 @@
 ﻿using UnityEngine.AI;
 using UnityEngine;
 using System.Collections;
-using Unity.AI.Navigation;
-using UnityEngine.SceneManagement;
 
 public class ShadowStalkerAI : MonoBehaviour
 {
@@ -11,11 +9,11 @@ public class ShadowStalkerAI : MonoBehaviour
     public Animator animator;
     public Transform player;
     public Transform[] waypoints;
-    public Camera playerCamera;
+    public GameObject attackMonsterPrefab; // Reference to the attack monster prefab
 
     [Header("AI Behavior")]
     public float detectionRange = 10f;
-    public float attackRange = 2f;
+    public float attackRange = 3f;
     public float rotationSpeed = 5f;
     public GameObject monsterModel;
     private int currentWaypointIndex = 0;
@@ -24,12 +22,6 @@ public class ShadowStalkerAI : MonoBehaviour
     private bool isSearching = false;
     public float searchDuration = 2f;
 
-    [Header("Jumpscare Settings")]
-    public float cameraShakeIntensity = 10f;
-    public float cameraShakeDuration = 0.5f;
-    public float cameraRotationSpeed = 5f;
-    public float jumpscareDelay = 1.5f;
-
     [Header("Footstep Settings")]
     public float footstepInterval = 0.5f;
     private float footstepTimer = 0f;
@@ -37,19 +29,14 @@ public class ShadowStalkerAI : MonoBehaviour
     [Header("AI Sounds")]
     public AudioClip walkingSound;
     public AudioClip runningSound;
-    public AudioClip attackSound;
-
-    [Header("AI Attack Settings")]
-    public float attackCooldown = 2f;
-    private bool isAttacking = false;
 
     private StarterAssets.FirstPersonController playerController;
+    private bool isAttacking = false;
 
     void Start()
     {
         if (agent == null) agent = GetComponent<NavMeshAgent>();
         if (animator == null) animator = GetComponent<Animator>();
-        if (playerCamera == null) playerCamera = Camera.main;
         if (player != null) playerController = player.GetComponent<StarterAssets.FirstPersonController>();
 
         if (waypoints.Length > 0)
@@ -87,7 +74,7 @@ public class ShadowStalkerAI : MonoBehaviour
 
         if (distanceToPlayer <= attackRange && !isAttacking)
         {
-            AttackTarget();
+            TriggerAttack();
         }
         else if (distanceToPlayer <= detectionRange)
         {
@@ -115,7 +102,7 @@ public class ShadowStalkerAI : MonoBehaviour
 
             if (!agent.hasPath || agent.remainingDistance < waypointThreshold)
             {
-                StartCoroutine(SearchRoutine()); // Start the search delay
+                StartCoroutine(SearchRoutine());
             }
 
             PlayFootstepSound();
@@ -155,90 +142,61 @@ public class ShadowStalkerAI : MonoBehaviour
         isSearching = false;
     }
 
-    void AttackTarget()
+    void TriggerAttack()
     {
-        if (isAttacking) return;
-
         isAttacking = true;
-        isSearching = false;
 
-        // Only stop the agent if it's valid
-        if (agent != null && agent.enabled && agent.isOnNavMesh)
-        {
-            agent.isStopped = true;
-        }
+        // Disable this monster
+        monsterModel.SetActive(false);
+        agent.isStopped = true;
+        agent.enabled = false;
 
-        animator.SetBool("isAttacking", true);
-        animator.SetBool("isSearching", false);
-        PlayAttackSound();
-
-        // Lock player controls if available
+        // Lock player controls
         if (playerController != null)
         {
             playerController.LockControls(true);
         }
 
-        // Start the jumpscare sequence
-        StartCoroutine(GameOverSequence());
-    }
-    IEnumerator GameOverSequence()
-    {
-        if (playerCamera != null)
+        // Find the attack monster (if it's in the scene)
+        AttackShadowStalkerAI attackAI = FindAnyObjectByType<AttackShadowStalkerAI>(FindObjectsInactive.Include);
+
+        if (attackAI != null)
         {
-            // First shake the camera slightly
-            for (int i = 0; i < 5; i++)
-            {
-                playerCamera.transform.Rotate(Random.Range(-cameraShakeIntensity, cameraShakeIntensity),
-                                             Random.Range(-cameraShakeIntensity, cameraShakeIntensity), 0);
-                yield return new WaitForSeconds(0.05f);
-            }
+            // Position it correctly
+            Camera playerCamera = Camera.main;
+            attackAI.transform.position = playerCamera.transform.position + playerCamera.transform.forward * 1.5f;
 
-            // Then smoothly rotate camera to face the monster
-            float duration = cameraShakeDuration;
-            float elapsedTime = 0f;
-
-            while (elapsedTime < duration)
-            {
-                Vector3 direction = (transform.position - playerCamera.transform.position).normalized;
-                Quaternion lookRotation = Quaternion.LookRotation(direction);
-                playerCamera.transform.rotation = Quaternion.Slerp(playerCamera.transform.rotation, lookRotation, Time.deltaTime * cameraRotationSpeed);
-                elapsedTime += Time.deltaTime;
-                yield return null;
-            }
-
-            // Ensure it's directly facing monster at the end
-            Vector3 finalDirection = (transform.position - playerCamera.transform.position).normalized;
-            playerCamera.transform.rotation = Quaternion.LookRotation(finalDirection);
+            // Activate it
+            attackAI.StartAttack(playerCamera, playerController);
         }
+        else if (attackMonsterPrefab != null) // Fallback to instantiation
+        {
+            // Instantiate if not found in scene
+            GameObject attackMonster = Instantiate(
+                attackMonsterPrefab,
+                Camera.main.transform.position + Camera.main.transform.forward * 1.5f,
+                Quaternion.identity);
 
-        // Pause for the jumpscare effect
-        yield return new WaitForSeconds(jumpscareDelay);
-
-        // Finally trigger game over
-        GameOver();
+            // Get the AttackShadowStalkerAI component and activate it
+            attackAI = attackMonster.GetComponent<AttackShadowStalkerAI>();
+            if (attackAI != null)
+            {
+                attackAI.StartAttack(Camera.main, playerController);
+            }
+        }
     }
-
-    void GameOver()
-    {
-        Debug.Log("GAME OVER");
-        SceneManager.LoadScene("GameOverScene");
-    }
-
     void ChaseTarget()
     {
-        // First check if agent is valid and on NavMesh before using it
         if (agent == null || !agent.enabled)
         {
             Debug.LogWarning("NavMeshAgent is null or disabled during chase");
             return;
         }
 
-        // Check if agent is on NavMesh
         if (!agent.isOnNavMesh)
         {
             Debug.LogWarning("NavMeshAgent is not on NavMesh during chase, attempting to relocate");
 
-            // Try to find a valid position on NavMesh and warp to it
             NavMeshHit hit;
             if (NavMesh.SamplePosition(transform.position, out hit, 5f, NavMesh.AllAreas))
             {
@@ -251,7 +209,6 @@ public class ShadowStalkerAI : MonoBehaviour
             }
         }
 
-        // Now that we've verified the agent is valid, proceed with chase
         agent.speed = 7f;
         agent.isStopped = false;
         agent.SetDestination(player.position);
@@ -272,7 +229,6 @@ public class ShadowStalkerAI : MonoBehaviour
 
         animator.SetBool("isWalking", isMoving);
         animator.SetBool("isRunning", isMoving && agent.hasPath && agent.velocity.magnitude > 3.5f);
-        animator.SetBool("Attack", agent.isStopped);
     }
 
     void PlayFootstepSound()
@@ -283,10 +239,5 @@ public class ShadowStalkerAI : MonoBehaviour
         SoundFXManager.Instance.PlaySoundFXClip(clipToPlay, transform, 1f);
 
         footstepTimer = footstepInterval;
-    }
-
-    void PlayAttackSound()
-    {
-        SoundFXManager.Instance.PlaySoundFXClip(attackSound, transform, 1f);
     }
 }

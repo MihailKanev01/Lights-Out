@@ -7,7 +7,7 @@ public class Flashlight : MonoBehaviour
     [SerializeField] private Slider batterySlider;
     [SerializeField] private Image batteryImage;
     [SerializeField] private Image sanityImage;
-    [SerializeField] private Slider sanitySlider; 
+    [SerializeField] private Slider sanitySlider;
 
     [Header("Flashlight Settings")]
     [SerializeField] private GameObject flashlightObject;
@@ -18,10 +18,10 @@ public class Flashlight : MonoBehaviour
     [SerializeField] private float lowBatteryThreshold = 20f;
     private float currentBattery;
 
-    [Header("Sanity System")] // 🟢 New Sanity Variables
+    [Header("Sanity System")]
     [SerializeField] private float maxSanity = 100f;
-    [SerializeField] private float sanityDrainRate = 5f; 
-    [SerializeField] private float sanityRegenRate = 10f; 
+    [SerializeField] private float sanityDrainRate = 5f;
+    [SerializeField] private float sanityRegenRate = 10f;
     private float currentSanity;
 
     [Header("Sound FX")]
@@ -31,13 +31,14 @@ public class Flashlight : MonoBehaviour
 
     private bool isFlashlightOn = false;
     private bool isLowBatteryWarningPlayed = false;
+    private bool isFlashlightPickedUp = false; // New flag to track if flashlight is picked up
 
     private void Start()
     {
         currentBattery = maxBattery;
-        currentSanity = maxSanity; 
+        currentSanity = maxSanity;
         UpdateBatteryUI();
-        UpdateSanityUI(); 
+        UpdateSanityUI();
 
         isFlashlightOn = false;
         if (flashlightObject != null) flashlightObject.SetActive(false);
@@ -47,7 +48,8 @@ public class Flashlight : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetButtonDown("F"))
+        // Only allow flashlight toggle if it's been picked up
+        if (isFlashlightPickedUp && Input.GetButtonDown("F"))
         {
             ToggleFlashlight();
         }
@@ -55,7 +57,7 @@ public class Flashlight : MonoBehaviour
         if (isFlashlightOn)
         {
             DrainBattery();
-            RegenerateSanity(); 
+            RegenerateSanity();
         }
         else
         {
@@ -65,6 +67,9 @@ public class Flashlight : MonoBehaviour
 
     private void ToggleFlashlight()
     {
+        // Don't allow toggling if not picked up
+        if (!isFlashlightPickedUp) return;
+
         isFlashlightOn = !isFlashlightOn;
 
         if (flashlightObject != null) flashlightObject.SetActive(isFlashlightOn);
@@ -155,7 +160,7 @@ public class Flashlight : MonoBehaviour
             sanityImage.enabled = false;
         }
 
-            UpdateSanityUI();
+        UpdateSanityUI();
     }
 
     private void RegenerateSanity()
@@ -185,5 +190,18 @@ public class Flashlight : MonoBehaviour
         {
             sanityImage.color = Color.red;
         }
+    }
+
+    public void EnableFlashlight()
+    {
+        // Set the flag that flashlight has been picked up
+        isFlashlightPickedUp = true;
+
+        // Reset battery
+        currentBattery = maxBattery;
+        if (batteryImage != null) batteryImage.enabled = true;
+        UpdateBatteryUI();
+
+        Debug.Log("Flashlight picked up. Press F to turn it on.");
     }
 }
