@@ -2,14 +2,59 @@ using UnityEngine;
 
 public class FlashlightPickup : MonoBehaviour
 {
+    [Header("Pickup Settings")]
     [SerializeField] private GameObject pickUpText;
-    [SerializeField] private AudioClip flashlightPickupSound;
+    [SerializeField] private AudioClip pickupSound;
+    [SerializeField] private GameObject flashlightModel; // The 3D model on the ground
 
     private bool inReach = false;
 
     private void Start()
     {
-        pickUpText?.SetActive(false);
+        Cursor.visible = false;
+        Cursor.lockState = CursorLockMode.Locked;
+        if (pickUpText != null)
+            pickUpText.SetActive(false);
+    }
+
+    private void Update()
+    {
+        // Check if player presses interact button while in range
+        if (inReach && Input.GetButtonDown("Interact"))
+        {
+            PickUpFlashlight();
+        }
+    }
+
+    private void PickUpFlashlight()
+    {
+        // Find the player's Flashlight script
+        Flashlight playerFlashlight = FindAnyObjectByType<Flashlight>();
+
+        if (playerFlashlight != null)
+        {
+            // Give the flashlight to the player
+            playerFlashlight.GiveFlashlight();
+
+            // Play pickup sound
+            if (pickupSound != null)
+            {
+                SoundFXManager.Instance?.PlaySoundFXClip(pickupSound, transform, 0.5f);
+            }
+
+            Debug.Log("Flashlight picked up!");
+
+            // Hide the pickup text
+            if (pickUpText != null)
+                pickUpText.SetActive(false);
+
+            // Destroy the pickup object
+            Destroy(gameObject);
+        }
+        else
+        {
+            Debug.LogError("Could not find Flashlight script on player!");
+        }
     }
 
     private void OnTriggerEnter(Collider other)
@@ -17,8 +62,8 @@ public class FlashlightPickup : MonoBehaviour
         if (other.CompareTag("Reach"))
         {
             inReach = true;
-            pickUpText?.SetActive(true);
-            Debug.Log("Player can pick up flashlight - inReach set to true");
+            if (pickUpText != null)
+                pickUpText.SetActive(true);
         }
     }
 
@@ -27,39 +72,8 @@ public class FlashlightPickup : MonoBehaviour
         if (other.CompareTag("Reach"))
         {
             inReach = false;
-            pickUpText?.SetActive(false);
-            Debug.Log("Player left flashlight range - inReach set to false");
-        }
-    }
-
-    private void Update()
-    {
-        if (inReach && Input.GetButtonDown("Interact"))
-        {
-            Debug.Log("Interact button pressed while in reach of flashlight");
-
-            // Find the player's Flashlight component
-            Flashlight playerFlashlight = FindAnyObjectByType<Flashlight>();
-
-            if (playerFlashlight != null)
-            {
-                // Enable the player's flashlight component
-                playerFlashlight.EnableFlashlight();
-
-                // Play pickup sound
-                if (flashlightPickupSound != null)
-                {
-                    SoundFXManager.Instance?.PlaySoundFXClip(flashlightPickupSound, transform, 0.5f);
-                }
-
-                // Remove from the world
-                pickUpText?.SetActive(false);
-                Destroy(gameObject);
-            }
-            else
-            {
-                Debug.LogError("No Flashlight component found on player! Make sure player has Flashlight script attached.");
-            }
+            if (pickUpText != null)
+                pickUpText.SetActive(false);
         }
     }
 }

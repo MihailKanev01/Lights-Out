@@ -10,7 +10,10 @@ public class BatteryPickup : MonoBehaviour
 
     private void Start()
     {
-        pickUpText?.SetActive(false);
+        Cursor.visible = false;
+        Cursor.lockState = CursorLockMode.Locked;
+        if (pickUpText != null)
+            pickUpText.SetActive(false);
     }
 
     private void OnTriggerEnter(Collider other)
@@ -18,7 +21,8 @@ public class BatteryPickup : MonoBehaviour
         if (other.CompareTag("Reach"))
         {
             inReach = true;
-            pickUpText?.SetActive(true);
+            if (pickUpText != null)
+                pickUpText.SetActive(true);
         }
     }
 
@@ -27,7 +31,8 @@ public class BatteryPickup : MonoBehaviour
         if (other.CompareTag("Reach"))
         {
             inReach = false;
-            pickUpText?.SetActive(false);
+            if (pickUpText != null)
+                pickUpText.SetActive(false);
         }
     }
 
@@ -36,18 +41,30 @@ public class BatteryPickup : MonoBehaviour
         if (inReach && Input.GetButtonDown("Interact"))
         {
             Flashlight flashlight = FindAnyObjectByType<Flashlight>();
+
             if (flashlight != null)
             {
-                flashlight.RechargeBattery(rechargeAmount);
-            }
+                // Only allow battery pickup if player has the flashlight
+                if (flashlight.HasFlashlight())
+                {
+                    flashlight.RechargeBattery(rechargeAmount);
 
-            if (batteryPickupSound != null)
-            {
-                SoundFXManager.Instance?.PlaySoundFXClip(batteryPickupSound, transform, 0.5f);
-            }
+                    if (batteryPickupSound != null)
+                    {
+                        SoundFXManager.Instance?.PlaySoundFXClip(batteryPickupSound, transform, 0.5f);
+                    }
 
-            pickUpText?.SetActive(false);
-            Destroy(gameObject);
+                    if (pickUpText != null)
+                        pickUpText.SetActive(false);
+
+                    Destroy(gameObject);
+                }
+                else
+                {
+                    Debug.Log("You need a flashlight first!");
+                    // Optional: Show UI message "Find a flashlight first!"
+                }
+            }
         }
     }
 }

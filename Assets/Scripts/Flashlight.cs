@@ -20,55 +20,91 @@ public class Flashlight : MonoBehaviour
 
     [Header("Sanity System")]
     [SerializeField] private float maxSanity = 100f;
-    [SerializeField] private float sanityDrainRate = 5f;
-    [SerializeField] private float sanityRegenRate = 10f;
+    [SerializeField] private float sanityDrainRate = 5f; // Drains when flashlight is OFF
+    [SerializeField] private float sanityRegenRate = 10f; // Regenerates when flashlight is ON
+    [SerializeField] private float lowSanityThreshold = 20f;
     private float currentSanity;
 
     [Header("Sound FX")]
     [SerializeField] private AudioClip turnOnSound;
     [SerializeField] private AudioClip turnOffSound;
     [SerializeField] private AudioClip lowBatterySound;
+    [SerializeField] private AudioClip lowSanitySound;
+
+    [Header("Pickup System")]
+    [SerializeField] private bool hasFlashlight = false; // Player starts WITHOUT flashlight
+    [SerializeField] private GameObject flashlightUIIndicator; // Optional: UI icon showing player has flashlight
 
     private bool isFlashlightOn = false;
     private bool isLowBatteryWarningPlayed = false;
-    private bool isFlashlightPickedUp = false; // New flag to track if flashlight is picked up
+    private bool isLowSanityWarningPlayed = false;
 
     private void Start()
     {
+        Cursor.visible = false;
+        Cursor.lockState = CursorLockMode.Locked;
         currentBattery = maxBattery;
         currentSanity = maxSanity;
         UpdateBatteryUI();
         UpdateSanityUI();
 
+        // Start without flashlight
         isFlashlightOn = false;
         if (flashlightObject != null) flashlightObject.SetActive(false);
         if (flashlightLight != null) flashlightLight.enabled = false;
         if (flashlightRenderer != null) flashlightRenderer.enabled = false;
+
+        // Update UI to show player doesn't have flashlight
+        UpdateFlashlightUI();
     }
 
     private void Update()
     {
-        // Only allow flashlight toggle if it's been picked up
-        if (isFlashlightPickedUp && Input.GetButtonDown("F"))
+        // Only allow flashlight toggle if player has picked it up
+        if (Input.GetButtonDown("F"))
         {
-            ToggleFlashlight();
+            if (hasFlashlight)
+            {
+                ToggleFlashlight();
+            }
+            else
+            {
+                Debug.Log("You don't have a flashlight!");
+                // Optional: Play a "can't do that" sound or show UI message
+            }
         }
 
-        if (isFlashlightOn)
+        // Handle flashlight and sanity logic
+        if (hasFlashlight && isFlashlightOn)
         {
             DrainBattery();
             RegenerateSanity();
         }
         else
         {
-            DrainSanity();
+            DrainSanity(); // Always drain sanity when flashlight is off or not owned
+        }
+
+        // Check for low sanity warning
+        if (currentSanity <= lowSanityThreshold && !isLowSanityWarningPlayed && lowSanitySound != null)
+        {
+            SoundFXManager.Instance?.PlaySoundFXClip(lowSanitySound, transform, 0.3f);
+            isLowSanityWarningPlayed = true;
+        }
+
+        if (currentSanity > lowSanityThreshold)
+        {
+            isLowSanityWarningPlayed = false;
         }
     }
 
     private void ToggleFlashlight()
     {
-        // Don't allow toggling if not picked up
-        if (!isFlashlightPickedUp) return;
+        // Can't turn on if battery is dead
+        if (!isFlashlightOn && currentBattery <= 0)
+        {
+            return;
+        }
 
         isFlashlightOn = !isFlashlightOn;
 
@@ -83,15 +119,16 @@ public class Flashlight : MonoBehaviour
     private void DrainBattery()
     {
         currentBattery -= drainRate * Time.deltaTime;
-        UpdateBatteryUI();
 
         if (currentBattery <= 0)
         {
             currentBattery = 0;
-            batteryImage.enabled = false;
             TurnOffFlashlight();
         }
 
+        UpdateBatteryUI();
+
+        // Low battery warning
         if (currentBattery <= lowBatteryThreshold && !isLowBatteryWarningPlayed)
         {
             SoundFXManager.Instance?.PlaySoundFXClip(lowBatterySound, transform, 0.2f);
@@ -117,16 +154,62 @@ public class Flashlight : MonoBehaviour
         SoundFXManager.Instance?.PlaySoundFXClip(turnOffSound, transform, 0.5f);
     }
 
+    private void DrainSanity()
+    {
+        currentSanity -= sanityDrainRate * Time.deltaTime;
+
+        if (currentSanity < 0)
+        {
+            currentSanity = 0;
+        }
+
+        UpdateSanityUI();
+    }
+
+    private void RegenerateSanity()
+    {
+        currentSanity += sanityRegenRate * Time.deltaTime;
+
+        if (currentSanity > maxSanity)
+        {
+            currentSanity = maxSanity;
+        }
+
+        UpdateSanityUI();
+    }
+
+    // Called by FlashlightPickup when player collects the flashlight
+    public void GiveFlashlight()
+    {
+        hasFlashlight = true;
+        Debug.Log("Flashlight acquired!");
+        UpdateFlashlightUI();
+    }
+
     public void RechargeBattery(float amount)
     {
         currentBattery += amount;
         if (currentBattery > maxBattery)
         {
             currentBattery = maxBattery;
-            batteryImage.enabled = true;
         }
 
         UpdateBatteryUI();
+    }
+
+    public bool HasFlashlight()
+    {
+        return hasFlashlight;
+    }
+
+    public float GetSanity()
+    {
+        return currentSanity;
+    }
+
+    public float GetSanityPercentage()
+    {
+        return currentSanity / maxSanity;
     }
 
     private void UpdateBatteryUI()
@@ -135,10 +218,10 @@ public class Flashlight : MonoBehaviour
         {
             batterySlider.value = currentBattery / maxBattery;
         }
-        UpdateSliderColor();
+        UpdateBatteryColor();
     }
 
-    private void UpdateSliderColor()
+    private void UpdateBatteryColor()
     {
         if (batteryImage != null)
         {
@@ -151,57 +234,30 @@ public class Flashlight : MonoBehaviour
         }
     }
 
-    private void DrainSanity()
-    {
-        currentSanity -= sanityDrainRate * Time.deltaTime;
-        if (currentSanity < 0)
-        {
-            currentSanity = 0;
-            sanityImage.enabled = false;
-        }
-
-        UpdateSanityUI();
-    }
-
-    private void RegenerateSanity()
-    {
-        currentSanity += sanityRegenRate * Time.deltaTime;
-        if (currentSanity > maxSanity)
-        {
-            currentSanity = maxSanity;
-            sanityImage.enabled = true;
-        }
-
-        UpdateSanityUI();
-    }
-
-    public float GetSanity()
-    {
-        return currentSanity;
-    }
-
     private void UpdateSanityUI()
     {
         if (sanitySlider != null)
         {
             sanitySlider.value = currentSanity / maxSanity;
         }
+
         if (sanityImage != null)
         {
-            sanityImage.color = Color.red;
+            if (currentSanity > 50)
+                sanityImage.color = Color.cyan;
+            else if (currentSanity > 20)
+                sanityImage.color = Color.yellow;
+            else
+                sanityImage.color = Color.red;
         }
     }
 
-    public void EnableFlashlight()
+    private void UpdateFlashlightUI()
     {
-        // Set the flag that flashlight has been picked up
-        isFlashlightPickedUp = true;
-
-        // Reset battery
-        currentBattery = maxBattery;
-        if (batteryImage != null) batteryImage.enabled = true;
-        UpdateBatteryUI();
-
-        Debug.Log("Flashlight picked up. Press F to turn it on.");
+        // Optional: Show/hide UI indicator that player has flashlight
+        if (flashlightUIIndicator != null)
+        {
+            flashlightUIIndicator.SetActive(hasFlashlight);
+        }
     }
 }
