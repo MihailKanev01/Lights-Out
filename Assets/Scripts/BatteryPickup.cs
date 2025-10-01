@@ -10,8 +10,6 @@ public class BatteryPickup : MonoBehaviour
 
     private void Start()
     {
-        Cursor.visible = false;
-        Cursor.lockState = CursorLockMode.Locked;
         if (pickUpText != null)
             pickUpText.SetActive(false);
     }

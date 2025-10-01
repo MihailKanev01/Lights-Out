@@ -11,8 +11,6 @@ public class FlashlightPickup : MonoBehaviour
 
     private void Start()
     {
-        Cursor.visible = false;
-        Cursor.lockState = CursorLockMode.Locked;
         if (pickUpText != null)
             pickUpText.SetActive(false);
     }

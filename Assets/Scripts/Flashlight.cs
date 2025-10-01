@@ -41,8 +41,7 @@ public class Flashlight : MonoBehaviour
 
     private void Start()
     {
-        Cursor.visible = false;
-        Cursor.lockState = CursorLockMode.Locked;
+        
         currentBattery = maxBattery;
         currentSanity = maxSanity;
         UpdateBatteryUI();
